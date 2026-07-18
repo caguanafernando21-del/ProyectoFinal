@@ -11,9 +11,9 @@ public class Ventana extends JFrame {
     public Ventana(){
         setTitle("Interfaz DFS/BFS");
         setSize(900, 600);
-
-        JPanel pnlPrincipal = new JPanel(new BorderLayout(15, 15));
-        JPanel pnlLateral = new JPanel(new BorderLayout());
+        //el modelo original ocupa 4 PANELES 
+        JPanel pnlPrincipal = new JPanel(new BorderLayout(15, 15)); //panel derecho
+        JPanel pnlLateral = new JPanel(new BorderLayout()); //panel izquierdo
 
         pnlLateral.setPreferredSize(new Dimension(200, 0));
 
