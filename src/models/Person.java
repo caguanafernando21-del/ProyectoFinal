@@ -4,6 +4,7 @@ public class Person implements Comparable<Person>{
     private String name;
     private int age;
     
+    // Constructores, Getters y Setters
     public Person() {
     }
 
@@ -28,14 +29,16 @@ public class Person implements Comparable<Person>{
         this.age = age;
     }
 
+    // Define el orden natural de las personas
     @Override
     public int compareTo(Person otra) {
-        // return this.name.compareTo(otra.getName());
+        // 1. Compara primero por edad
         int compAge = Integer.compare(this.age, otra.getAge());
 
         if (compAge != 0)
-            return compAge;
+            return compAge; // Si las edades son distintas, ordena por edad
 
+        // 2. Si tienen la misma edad, desempata alfabéticamente por nombre
         return this.name.compareTo(otra.getName());
     }
 
