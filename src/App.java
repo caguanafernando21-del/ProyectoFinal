@@ -75,6 +75,13 @@ public class App {
         });
             
 
+
+        salir.addActionListener(e->{
+                System.exit(0);
+            });
+
+    
+
         frmVentana.setSize(400,400);
         frmVentana.setVisible(true);
         frmVentana.setTitle("Proyecto");
