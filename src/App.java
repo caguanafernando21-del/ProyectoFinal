@@ -76,9 +76,7 @@ public class App {
             
 
 
-        salir.addActionListener(e->{
-                System.exit(0);
-            });
+     
 
     
 
