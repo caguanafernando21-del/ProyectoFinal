@@ -3,7 +3,7 @@ import java.util.Set;
 
 public class PathResult<T> {
     private final Set<T> visitados; // Historial de todos los nodos que se revisaron (útil para ver eficiencia)
-    private final Set<T> path; // El camino final y limpio desde 'start' hasta 'end'
+    private final Set<T> path; // El camino final y limpio desde "start" hasta "end"
 
     public PathResult(Set<T> visitados,Set<T> path) {
         this.visitados = visitados;
