@@ -1,2 +1,9 @@
-### Proyecto Final 
-### Integrantes: José Astudillo - Fernando Caguana - Angelo Carchipulla
+## Universidad Politécnica Salesiana
+## Estructura de Datos
+## Proyecto Final
+### Integrantes
+Angelo Carchipulla
+
+Fernando Caguana
+
+José Astudillo
