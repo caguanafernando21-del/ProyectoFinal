@@ -1,8 +1,12 @@
 package app;
-import view.Ventana;
+import java.awt.*;
+import javax.swing.*;
+
+import view.MainFrame;
 
 public class App {
-    public static void main(String[] args) throws Exception {
-        new Ventana();
+    public static void main(String[] args) {
+        MainFrame ventana = new MainFrame();
+        ventana.setVisible(true);
     }
 }
