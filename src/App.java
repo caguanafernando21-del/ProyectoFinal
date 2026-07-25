@@ -1,88 +1,104 @@
-
-import java.awt.BorderLayout;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-
+import java.awt.*;
+import javax.swing.*;
 
 public class App {
-    public static void main(String[] args) throws Exception {
 
-        JFrame frmVentana = new JFrame();
-        
-        // Paneles
-        JPanel pnlPanelPrincipal = new JPanel();
-        JPanel pnlPanelDos = new JPanel();
-        JPanel pnlPanelTres = new JPanel();
-        JPanel pnlDondeColocarTodo = new JPanel();
+    public static void main(String[] args) {
 
-        // Las barras que apareceren en la pantalla
-        JMenuBar opciones = new JMenuBar();
-        JMenuBar opcionesDos = new JMenuBar();
+        // Ventana
+        JFrame ventana = new JFrame("Proyecto");
+        ventana.setSize(1000, 600);
+        ventana.setLocationRelativeTo(null);
+        ventana.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        ventana.setLayout(new BorderLayout());
 
-        // Lo que va dentro de las barras
-        JMenu finalme = new JMenu("Opciones");
-        JMenu otro = new JMenu("Opciones extras");
+        JPanel menu = new JPanel();
+        menu.setPreferredSize(new Dimension(180, 600));
+        menu.setBackground(new Color(35, 55, 85));
+        menu.setLayout(new BoxLayout(menu, BoxLayout.Y_AXIS));
 
-        // Opciones a seleccionar el boton/menu opcion
-        JMenuItem BFS  = new JMenu("Metodo de busqueda BFS");
-        JMenuItem DFS = new JMenu("Metodo de busqueda DFS");
+        // Barra 
+        JMenuBar barraMetodos = new JMenuBar();
+        barraMetodos.setMaximumSize(new Dimension(140, 30));
+        barraMetodos.setPreferredSize(new Dimension(140, 30));
+        barraMetodos.setBackground(new Color(52, 152, 219));
+        barraMetodos.setBorder(BorderFactory.createLineBorder(Color.WHITE));
 
-        // Opciones de la segunda parte
+        JMenu metodos = new JMenu("Métodos");
+
+        JMenuItem bfs = new JMenuItem("BFS");
+        JMenuItem dfs = new JMenuItem("DFS");
+
+        metodos.add(bfs);
+        metodos.add(dfs);
+
+        barraMetodos.add(metodos);
+        barraMetodos.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Barra Opciones
+        JMenuBar barraOpciones = new JMenuBar();
+        barraOpciones.setMaximumSize(new Dimension(140, 30));
+        barraOpciones.setPreferredSize(new Dimension(140, 30));
+        barraOpciones.setBackground(new Color(52, 152, 219));
+        barraOpciones.setBorder(BorderFactory.createLineBorder(Color.WHITE));
+
+        JMenu opciones = new JMenu("Opciones");
+
         JMenuItem temperatura = new JMenuItem("Temperatura");
-        JMenuItem salir = new JMenu("Salir");
+        JMenuItem salir = new JMenuItem("Salir");
 
-        // instanciar para poder usar el borderLayout
-        pnlPanelPrincipal.setLayout(new BorderLayout());
-        pnlDondeColocarTodo.add(Box.createVerticalStrut(20), BorderLayout.NORTH);
+        opciones.add(temperatura);
+        opciones.addSeparator();
+        opciones.add(salir);
 
+        barraOpciones.add(opciones);
+        barraOpciones.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-
-        // opciones del primer panel
-        finalme.add(DFS);
-        finalme.add(BFS);
-        // opciones del segundo panel
-        otro.add(temperatura);
-        otro.add(salir);
-
-        // Agregar los menus a la barra
-        opciones.add(finalme);
-        opcionesDos.add(otro);
-        // agregar el panel la barra
-        pnlPanelDos.add(opciones);
-        pnlPanelTres.add(opcionesDos);
-
-        
-        pnlDondeColocarTodo.setLayout(new BoxLayout(pnlDondeColocarTodo, BoxLayout.Y_AXIS));
-
-        pnlDondeColocarTodo.add(pnlPanelDos);     // Opciones
-        pnlDondeColocarTodo.add(Box.createVerticalStrut(20)); // Espacio
-        pnlDondeColocarTodo.add(pnlPanelTres);    // ...
-        pnlPanelPrincipal.add(pnlDondeColocarTodo, BorderLayout.WEST);
-        
-        
-        frmVentana.add(pnlPanelPrincipal);
-
-        
-        
-            // opciones
-        salir.addActionListener(e-> {
-            System.exit(0);
-        });
-            
-
-
-     
+        menu.add(Box.createVerticalStrut(30));
+        menu.add(barraMetodos);
+        menu.add(Box.createVerticalStrut(20));
+        menu.add(barraOpciones);
+        menu.add(Box.createVerticalGlue());
 
     
+        JPanel mapa = new JPanel(new BorderLayout());
+        mapa.setBackground(new Color(240, 240, 240));
 
-        frmVentana.setSize(400,400);
-        frmVentana.setVisible(true);
-        frmVentana.setTitle("Proyecto");
+        JLabel titulo = new JLabel("MAPA", SwingConstants.CENTER);
+        titulo.setFont(new Font("Arial", Font.BOLD, 24));
+        mapa.add(titulo, BorderLayout.NORTH);
 
+        // Cargar imagen
+        java.net.URL ruta = App.class.getResource("/mapas.png");
+
+        if (ruta != null) {
+
+            ImageIcon icono = new ImageIcon(ruta);
+
+            Image img = icono.getImage().getScaledInstance(
+                    760,
+                    500,
+                    Image.SCALE_SMOOTH);
+
+            JLabel imagen = new JLabel(new ImageIcon(img));
+            imagen.setHorizontalAlignment(SwingConstants.CENTER);
+
+            mapa.add(imagen, BorderLayout.CENTER);
+
+        } else {
+
+            JLabel error = new JLabel("No se encontró mapas.png");
+            error.setHorizontalAlignment(SwingConstants.CENTER);
+            error.setFont(new Font("Arial", Font.BOLD, 20));
+
+            mapa.add(error, BorderLayout.CENTER);
+        }
+
+        ventana.add(menu, BorderLayout.WEST);
+        ventana.add(mapa, BorderLayout.CENTER);
+
+        salir.addActionListener(e -> System.exit(0));
+
+        ventana.setVisible(true);
     }
 }
