@@ -1,67 +1,46 @@
 package structures.node;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Node<T> {
+    //nodos AHORA tienen que SERVIR PARA RUTAS
+    //ya no PARA ÁRBOLES BINARIOS por AHORA
     private T value;
-    private Node<T> left;
-    private Node<T> right;
+    private double x;
+    private double y;
+    private List<Node<T>> vecinos;
 
     // Constructor ES LO QUE CREA EL NODO
     // NECESTIO SOLO EL VALOR, LAS REFERENCIAS SE INICIALIZAN EN NULL
-    public Node(T value) {
+    public Node(T value, double x, double y) {
         this.value = value;
-        this.left = null;
-        this.right = null;
+        this.x = x;
+        this.y = y;
+        this.vecinos = new ArrayList<>(); //vecinos PUEDEN REPETIRSE: ARRAYLIST
     }
 
     public T getValue() {
         return value;
     }
 
-    public void setValue(T value) {
-        this.value = value;
+    public double getX() {
+        return x;
     }
 
-    public Node<T> getLeft() {
-        return left;
+    public double getY() {
+        return y;
     }
 
-    public void setLeft(Node<T> left) {
-        this.left = left;
+    public List<Node<T>> getVecinos() {
+        return vecinos;
     }
-
-    public Node<T> getRight() {
-        return right;
+    public void añadirVecinos(Node<T> nodoAñadir){
+        vecinos.add(nodoAñadir);
     }
-
-    public void setRight(Node<T> right) {
-        this.right = right;
-    }
-
     @Override
     public String toString() {
-        return "Node [" + value + "]";
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        Node other = (Node) obj;
-        if (value == null) {
-            if (other.value != null)
-                return false;
-        } else if (!value.equals(other.value))
-            return false;
-        return true;
+        return "Nodo [" + value + "]"; //representacion del NODO
     }
 
 }
