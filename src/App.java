@@ -26,8 +26,8 @@ public class App {
 
         JMenu metodos = new JMenu("Métodos");
 
-        JMenuItem bfs = new JMenuItem("BFS");
-        JMenuItem dfs = new JMenuItem("DFS");
+        JMenuItem bfs = new JMenuItem("Metodo de busqueda a profundidad");
+        JMenuItem dfs = new JMenuItem("Metodo de busqueda por niveles");
 
         metodos.add(bfs);
         metodos.add(dfs);
