@@ -1,6 +1,7 @@
 package app;
 
 
+import listeners.PathListener;
 import models.MapPoint;
 import structures.graphs.Graph;
 import structures.graphs.PathResult;
@@ -20,14 +21,21 @@ public class GraphTest {
         //verificar COMO SALE
         mapaPrueba.printGraph();
         BFSPathFinder<MapPoint> bfSearch = new BFSPathFinder<>();
-        PathResult<MapPoint> resultadoBfSearch = bfSearch.find(mapaPrueba, nodoA, nodoC);
+
+        PathListener<MapPoint> listener = nodo -> {
+            System.out.println("Visitando : " + nodo.getId());
+        };
+
+
+
+        PathResult<MapPoint> resultadoBfSearch = bfSearch.find(mapaPrueba, nodoA, nodoC, listener);
         System.out.println(resultadoBfSearch); //imprime
         //imprime visitados=[MapPoint [id=NA, x=100, y=100], MapPoint [id=NB, x=200, y=100], MapPoint [id=NC, x=300, y=100]] SI USA
         
         //probar con DFS
         System.out.println("=== PRUEBA CoN DFS ===");
         DFSPathFinder<MapPoint> dfSearch = new DFSPathFinder<>();
-        PathResult<MapPoint> resultadoDfSearch = dfSearch.find(mapaPrueba, nodoA, nodoC);
+        PathResult<MapPoint> resultadoDfSearch = dfSearch.find(mapaPrueba, nodoA, nodoC, listener);
         System.out.println(resultadoDfSearch); //imprime DFS
     }
 }

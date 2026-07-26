@@ -1,11 +1,12 @@
 package structures.graphs;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class PathResult<T> {
-    private final Set<T> visitados;
-    private final Set<T> path;
+    private final LinkedHashSet<T> visitados;
+    private final LinkedHashSet<T> path;
 
-    public PathResult(Set<T> visitados,Set<T> path) {
+    public PathResult(LinkedHashSet<T> visitados, LinkedHashSet<T> path) {
         this.visitados = visitados;
         this.path = path;
     }
