@@ -1,15 +1,32 @@
 package structures.node;
 
+import structures.graphs.implementations.Temperatura;
+
 public class Node<T> {
     private T value; // El dato real que guarda el nodo
     private Node<T> left; // Referencia para árboles (hijo izquierdo)
     private Node<T> right; // Referencia para árboles (hijo derecho)
+    private Temperatura temperatura;
 
     // Constructor: Crea el nodo con su valor, sin conexiones iniciales
     public Node(T value) {
         this.value = value;
         this.left = null;
         this.right = null;
+    }
+
+    // Cuando creas un nodo, puedes asignarle una temperatura
+    public void setTemperatura(Temperatura temperatura) {
+        this.temperatura = temperatura;
+    }
+
+    public Temperatura getTemperatura() {
+        return this.temperatura;
+    }
+
+    // Método rápido para saber si el nodo tiene datos de temperatura
+    public boolean tieneTemperatura() {
+        return this.temperatura != null;
     }
 
     // Getters y Setters estándar
@@ -50,7 +67,10 @@ public class Node<T> {
     }
 
     // equals compara si dos nodos son Exactamente iguales basándose en su valor interno.
+
+
     @Override
+    @SuppressWarnings("unchecked")
     public boolean equals(Object obj) {
         if (this == obj)
             return true; // Es el mismo objeto en memoria

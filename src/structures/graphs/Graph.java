@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import structures.node.Node;
+import structures.graphs.implementations.Temperatura;
 
 public class Graph<T> {
     // Mapa: Clave = Nodo, Valor = Conjunto de Nodos vecinos a los que puede ir
@@ -57,4 +58,30 @@ public class Graph<T> {
         return graph.getOrDefault(new Node<T>(current), new HashSet<Node<T>>());
     }
 
+    // Método auxiliar: Busca y retorna el objeto Node<T> en el grafo usando su valor (T)
+    public Node<T> getNode(T data) {
+        for (Node<T> node : graph.keySet()) {
+            if (node.getValue().equals(data)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    // Asigna o actualiza la temperatura de un punto/nodo en el mapa
+    public void setTemperatura(T data, Temperatura temperatura) {
+        Node<T> node = getNode(data);
+        if (node != null) {
+            node.setTemperatura(temperatura);
+        }
+    }
+
+    // Obtiene la temperatura del punto/nodo especificado
+    public Temperatura getTemperatura(T data) {
+        Node<T> node = getNode(data);
+        if (node != null) {
+            return node.getTemperatura();
+        }
+        return null;
+    }
 }
