@@ -27,7 +27,7 @@ public class MapPanel extends JPanel {
         nodos = new ArrayList<>();
         conexiones = new ArrayList<>();
 
-        //Cargar la imagen
+        // Cargar la imagen
         java.net.URL ruta = getClass().getResource("/mapas.png");
         if (ruta != null) {
             imagenMapa = new ImageIcon(ruta).getImage();
@@ -39,7 +39,6 @@ public class MapPanel extends JPanel {
         cargarDatosDelGrafo();
 
         // Eventos al hacer click
-        // Escucha los clics que el usuario hace sobre este panel
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -48,10 +47,8 @@ public class MapPanel extends JPanel {
         });
     }
 
-    
     private void cargarDatosDelGrafo() {
         Map<String, Point> mapaDiccionario = new HashMap<>();
-
         
         mapaDiccionario.put("N1", new Point(204, 19));
         mapaDiccionario.put("N2", new Point(128, 195));
@@ -118,7 +115,7 @@ public class MapPanel extends JPanel {
             {"N13", "N15"},
             {"N14", "N15"}, 
             {"N14", "N21"},
-             {"N14", "N21-2"},
+            {"N14", "N21-2"},
             {"N15", "N16"},
             {"N16", "N17"},
             {"N17", "N18"},
@@ -127,7 +124,7 @@ public class MapPanel extends JPanel {
             {"N20", "N22"},
             {"N21", "N21-2"}, 
             {"N21", "N23"},
-             {"N21", "N31"},
+            {"N21", "N31"},
             {"N22", "N22-2"},
             {"N23", "N24"},
             {"N24", "N25"},
@@ -164,34 +161,29 @@ public class MapPanel extends JPanel {
         }
     }
 
-  
     public void setModoActual(ModoEdicion modo) {
         this.modoActual = modo;
         resetearSeleccionTemporal(); 
     }
 
-    
-     // Limpia la variable que guarda el click al conectar o desconectar.
-     
+    /**
+     * Limpia la variable que guarda el click al conectar o desconectar.
+     */
     public void resetearSeleccionTemporal() {
         nodoSeleccionadoTemp = null;
         repaint(); // Vuelve a dibujar el panel para quitar colores temporales
     }
 
-    
     private void manejarClic(Point clic) {
         switch (modoActual) {
             case AGREGAR_NODO:
-                //Agregar un punto donde el usuario hizo click
                 nodos.add(clic);
                 break;
 
             case ELIMINAR_NODO:
-                // Busca si el usuario hizo clic encima o muy cerca de un nodo existente
                 Point nodoEliminar = encontrarNodoCercano(clic);
                 if (nodoEliminar != null) {
                     nodos.remove(nodoEliminar);
-                    // Borra las conexiones que involucren a ese nodo
                     conexiones.removeIf(conexion -> conexion[0].equals(nodoEliminar) || conexion[1].equals(nodoEliminar));
                 }
                 break;
@@ -200,7 +192,6 @@ public class MapPanel extends JPanel {
                 Point nodoParaConectar = encontrarNodoCercano(clic);
                 if (nodoParaConectar != null) {
                     if (nodoSeleccionadoTemp == null) {
-                        // Si no hay nodo guardado, este clic es el origen
                         nodoSeleccionadoTemp = nodoParaConectar;
                     } else {
                         if (!nodoSeleccionadoTemp.equals(nodoParaConectar)) {
@@ -246,7 +237,6 @@ public class MapPanel extends JPanel {
         return null;
     }
 
-   
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -261,7 +251,7 @@ public class MapPanel extends JPanel {
 
         // Lineas de conexion
         g2d.setColor(new Color(41, 128, 185)); 
-        g2d.setStroke(new BasicStroke(3));     // Grosor de la linea
+        g2d.setStroke(new BasicStroke(3)); 
         for (Point[] conexion : conexiones) {
             g2d.drawLine(conexion[0].x, conexion[0].y, conexion[1].x, conexion[1].y);
         }
@@ -269,7 +259,7 @@ public class MapPanel extends JPanel {
         // CAPA 3: PUNTOS (NODOS)
         for (Point nodo : nodos) {
             if (nodo.equals(nodoSeleccionadoTemp)) {
-                g2d.setColor(new Color(241, 196, 15)); //Se pone amarillo al hacer click
+                g2d.setColor(new Color(241, 196, 15)); // Se pone amarillo al hacer click
             } else {
                 g2d.setColor(new Color(231, 76, 60)); 
             }

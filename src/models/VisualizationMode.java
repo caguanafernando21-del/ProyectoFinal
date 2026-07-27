@@ -1,5 +1,6 @@
 package models;
 
+
 public class VisualizationMode {
 
 
@@ -11,5 +12,10 @@ public class VisualizationMode {
     ELIMINAR_NODO, 
     CONECTAR_NODOS, 
     ELIMINAR_CONEXION
+    }
+    public enum TipoVisualizacion {
+        EXPLORATION, 
+        FINAL_PATH
+
     }
 }

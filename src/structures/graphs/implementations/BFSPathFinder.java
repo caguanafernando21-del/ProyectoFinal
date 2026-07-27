@@ -1,4 +1,5 @@
 package structures.graphs.implementations;
+import listeners.PathListener;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -12,48 +13,49 @@ import structures.graphs.PathResult;
 import structures.node.Node;
 
 public class BFSPathFinder<T> implements PathFinder<T>{
+
     @Override
-    public PathResult<T> find(Graph<T> graph, T start, T end) {
+    public PathResult<T> find(Graph<T> graph, T start, T end, PathListener<T> listener) {
         Queue<T> queue = new LinkedList<>();
-        Set<T> visitados = new LinkedHashSet<>();
-        Map<Node<T>, Node<T>> parent = new LinkedHashMap<>();
-        Set<T> visited = new LinkedHashSet<>();
+        LinkedHashSet<T> visitados = new LinkedHashSet<>();
+        Map<T, T> parent = new LinkedHashMap<>();
+        LinkedHashSet<T> visited = new LinkedHashSet<>();
 
         queue.add(start);
         visitados.add(start);
-        parent.put(new Node<>(start), null);
+        parent.put(start, null);
         while(!queue.isEmpty()) {
             T current = queue.poll(); // Saca el valor que se encuentra primero en la cola
             visited.add(current); //Añade el valor sacado de la cola al LinkedHashSet del visited
+            if(listener != null){
+                listener.onNodeVisited(current);
+            }
             if(current.equals(end)) { // pregunta si el valor sacado de la cola es igual al valor final que buscamos  (end)
 
                 return new PathResult<>(visited, buildPath(parent, end));
             }
             //
             for(Node<T> vecino : graph.getVecinos(current)) { // vecino  pasa a ser los valores que conoce el nodo
-                if(!visitados.contains(vecino.getValue())) { //(Si visitados no contiene al valor del vecino)
-                    visitados.add(vecino.getValue()); // Se añade al LinkedHashSet
-                    parent.put(vecino, new Node<>(current)); // Indica que en el vecino añade otro al valor sacado de la cola
-                    queue.add(vecino.getValue()); // Se añade el valor del vecino en la cola queue
+                T valorVecino = vecino.getValue();
+                if(!visitados.contains(valorVecino)) { //(Si visitados no contiene al valor del vecino)
+                    visitados.add(valorVecino); // Se añade al LinkedHashSet
+                    parent.put(valorVecino, current); // Indica que en el vecino añade otro al valor sacado de la cola
+                    queue.add(valorVecino); // Se añade el valor del vecino en la cola queue
                 }
 
             }
         }
-        return new PathResult<>(visited, new HashSet<>());
+        return new PathResult<>(visited, new LinkedHashSet<>());
     }
 
-    private Set<T> buildPath(Map<Node<T>, Node<T>> parent, T end) {
-        Set<T> path = new LinkedHashSet<>();
-        Node<T> nEnd = new Node<>(end);
-        // for(int i = 0; i<size; i = i + 1)
-        // Una variable de tipo Node<T> llamado at = nEnd (nodo end), 
-        
+    private LinkedHashSet<T> buildPath(Map<T, T> parent, T end) {
+        LinkedList<T> path = new LinkedList<>();
+        T actual = end;
 
-        // entonces después at parent se vuelve el nodo que conoce al NE siendo ND
-        for(Node<T> at = nEnd; at != null; at =  parent.get(at)) {
-            // mientras at sea diferente de null, en path se añade al valor de at (si es NE, entra solo su valor E)
-            path.add(at.getValue());
+        while(actual != null){
+            path.addFirst(actual);
+            actual = parent.get(actual);
         }
-        return path;
+        return new LinkedHashSet<>(path);
     }
 }

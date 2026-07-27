@@ -1,6 +1,8 @@
 package structures.graphs;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,12 +12,12 @@ public class Graph<T> {
         private Map<Node<T>, Set<Node<T>>> graph;
 
     public Graph(){
-        this.graph = new HashMap<Node<T>, Set<Node<T>>>();
+        this.graph = new LinkedHashMap<Node<T>, Set<Node<T>>>();
     }
 
     public void add(T data){
         Node<T> node = new Node<T>(data);
-        graph.putIfAbsent(node, new HashSet<Node<T>>());
+        graph.putIfAbsent(node, new LinkedHashSet<Node<T>>());
     }
 
     public void addConection(T v1, T v2){
@@ -50,6 +52,16 @@ public class Graph<T> {
 
     public Set<Node<T>> getVecinos(T current) {
         return graph.getOrDefault(new Node<T>(current), new HashSet<Node<T>>());
+    }
+
+    public Set<Node<T>> getNodes() {
+        return graph.keySet();
+    }
+    public Map<Node<T>, Set<Node<T>>> getGraph(){
+        return graph;
+    }
+    public boolean contains(T data){
+        return graph.containsKey(new Node<T>(data));
     }
 
 }

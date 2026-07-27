@@ -1,67 +1,61 @@
 package structures.node;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 public class Node<T> {
+    //nodos AHORA tienen que SERVIR PARA RUTAS
+    //ya no PARA ÁRBOLES BINARIOS por AHORA
     private T value;
-    private Node<T> left;
-    private Node<T> right;
+    private Set<Node<T>> vecinos;
 
     // Constructor ES LO QUE CREA EL NODO
     // NECESTIO SOLO EL VALOR, LAS REFERENCIAS SE INICIALIZAN EN NULL
     public Node(T value) {
         this.value = value;
-        this.left = null;
-        this.right = null;
+        this.vecinos = new LinkedHashSet<>(); //vecinos en NODOS NO PUEDEN REPETIRSE: SET
     }
 
-    public T getValue() {
+     public T getValue() {
         return value;
     }
+
 
     public void setValue(T value) {
         this.value = value;
     }
-
-    public Node<T> getLeft() {
-        return left;
-    }
-
-    public void setLeft(Node<T> left) {
-        this.left = left;
-    }
-
-    public Node<T> getRight() {
-        return right;
-    }
-
-    public void setRight(Node<T> right) {
-        this.right = right;
+   
+    public Set<Node<T>> getVecinos() {
+        return vecinos;
     }
 
     @Override
     public String toString() {
-        return "Node [" + value + "]";
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
+        return "Nodo [" + value + "]"; //representacion del NODO
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj == null)
+        if (obj instanceof Node<?> == false){ //evitar escribir por ejemplo UN STRING y que sea CONSIDERADO COMO NODO
             return false;
-        if (getClass() != obj.getClass())
-            return false;
-        Node other = (Node) obj;
-        if (value == null) {
-            if (other.value != null)
-                return false;
-        } else if (!value.equals(other.value))
-            return false;
-        return true;
+        }
+        Node<?> otroNodo = (Node<?>) obj; //CONVIERTE a NODO para que no se quede en OBJ
+        return value.equals(otroNodo.value); 
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode(); //se debe producir un MISMO HASHCODE 
+        //en el caso de que DOS OBJETOS SEAN IGUALES
+    }
+    public void setVecinos(Set<Node<T>> vecinos) {
+        this.vecinos = vecinos;
+    }
+
+     public void añadirVecinos(Node<T> nodoAñadir){
+        vecinos.add(nodoAñadir);
     }
 
 }
