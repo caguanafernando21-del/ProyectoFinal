@@ -12,7 +12,6 @@ import models.VisualizationMode.ModoEdicion;
 
 public class MapPanel extends JPanel {
     
-    // VARIABLES DE DIBUJO Y ALMACENAMIENTO
     private Image imagenMapa;
     private List<Point> nodos;            // Lista que guarda todos los nodos
     private List<Point[]> conexiones;     // Lista que guarda pares de puntos 
@@ -32,7 +31,7 @@ public class MapPanel extends JPanel {
         if (ruta != null) {
             imagenMapa = new ImageIcon(ruta).getImage();
         } else {
-            System.err.println("Error: No se encontro mapas.png en los recursos.");
+            System.err.println("Error no hay mapa o no se encontro.");
         }
 
         // Cargar los nodos y conexiones ya establecidas
