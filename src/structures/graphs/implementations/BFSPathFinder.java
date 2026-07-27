@@ -26,6 +26,8 @@ public class BFSPathFinder<T> implements PathFinder<T>{
         parent.put(start, null);
         while(!queue.isEmpty()) {
             T current = queue.poll(); // Saca el valor que se encuentra primero en la cola
+            System.out.println("Procesando: " + current);
+            System.out.println("Vecinos: "+ graph.getVecinos(current));
             visited.add(current); //Añade el valor sacado de la cola al LinkedHashSet del visited
             if(listener != null){
                 listener.onNodeVisited(current);

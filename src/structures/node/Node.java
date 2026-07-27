@@ -31,7 +31,7 @@ public class Node<T> {
 
     @Override
     public String toString() {
-        return "Nodo [" + value + "]"; //representacion del NODO
+        return value.toString(); //representacion del NODO
     }
 
     @Override
@@ -50,6 +50,7 @@ public class Node<T> {
         return value.hashCode(); //se debe producir un MISMO HASHCODE 
         //en el caso de que DOS OBJETOS SEAN IGUALES
     }
+
     public void setVecinos(Set<Node<T>> vecinos) {
         this.vecinos = vecinos;
     }

@@ -9,6 +9,14 @@ public class NodoJson {
     private List<String> vecinos;
     public NodoJson() {
     }
+    
+    public NodoJson(String id, int x, int y, List<String> vecinos) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.vecinos = vecinos;
+    }
+
     public String getId() {
         return id;
     }

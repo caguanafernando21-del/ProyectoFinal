@@ -5,4 +5,5 @@ import structures.graphs.Graph;
 
 public interface GraphRepository {
     Graph<MapPoint> cargarArchivo(String archivo);
+    void guardarArchivo(Graph<MapPoint> grafo, String archivo);
 }

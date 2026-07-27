@@ -1,275 +1,165 @@
 // Ubicacion sugerida: src/view/MapPanel.java
 package view;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import javax.swing.*;
-import models.VisualizationMode.ModoEdicion; 
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 
-public class MapPanel extends JPanel {
+import listeners.PathListener;
+import models.MapPoint;
+import models.VisualizationMode.TipoVisualizacion;
+import structures.graphs.Graph; 
+import structures.node.Node;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+
+public class MapPanel extends JPanel implements PathListener<MapPoint> {
     
-    private Image imagenMapa;
-    private List<Point> nodos;            // Lista que guarda todos los nodos
-    private List<Point[]> conexiones;     // Lista que guarda pares de puntos 
-    
+    private Image imagenMapa;   
+    private Graph<MapPoint> grafo; 
+    private TipoVisualizacion modoVisualizacion = TipoVisualizacion.EXPLORATION;
+    private List<MapPoint> visitadosADibujar = new ArrayList<>();
+    private List<MapPoint> pathADibujar = new ArrayList<>();
+    private Queue<MapPoint> colaDeVisitados = new LinkedList<>();
+    private Queue<MapPoint> colaExploracion = new LinkedList<>();
+    private Timer timerExploration;
     // VARIABLES DE CONTROL DE ESTADO
-    private ModoEdicion modoActual = ModoEdicion.NINGUNO; // Controla que accion hara el raton al hacer clic
     private final int RADIO_NODO = 8;                     // Tamano del circulo que representa al nodo
-    private Point nodoSeleccionadoTemp = null;            // Guarda el primer nodo clickeado al conectar/desconectar
 
-    public MapPanel() {
+    public MapPanel(Graph<MapPoint> grafo) {
+        System.out.println("CREANDO MAP PANEL");
+        //en el MapPanel todo se va a DIBUJAR en un mismo PANEL, si se puede hacerlo en un JLabel
+        //pero el problema es QUE ES POSIBLE que los nodos no se puedan ver porque el JLabel los tapa
+        //se podría DIBUJAR todo en un mismo panel
+        this.grafo = grafo;
+        setBackground(Color.DARK_GRAY);
         // Inicializamos las listas en blanco
-        nodos = new ArrayList<>();
-        conexiones = new ArrayList<>();
-
         // Cargar la imagen
         java.net.URL ruta = getClass().getResource("/mapas.png");
         if (ruta != null) {
             imagenMapa = new ImageIcon(ruta).getImage();
         } else {
-            System.err.println("Error no hay mapa o no se encontro.");
-        }
-
-        // Cargar los nodos y conexiones ya establecidas
-        cargarDatosDelGrafo();
-
-        // Eventos al hacer click
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                manejarClic(e.getPoint()); // Pasa las coordenadas X,Y del clic a nuestro metodo
-            }
-        });
-    }
-
-    private void cargarDatosDelGrafo() {
-        Map<String, Point> mapaDiccionario = new HashMap<>();
-        
-        mapaDiccionario.put("N1", new Point(204, 19));
-        mapaDiccionario.put("N2", new Point(128, 195));
-        mapaDiccionario.put("N4", new Point(55, 306));
-        mapaDiccionario.put("N5", new Point(21, 286));
-        mapaDiccionario.put("N6", new Point(4, 284));
-        mapaDiccionario.put("N7", new Point(71, 293));
-        mapaDiccionario.put("N8", new Point(94, 307));
-        mapaDiccionario.put("N9", new Point(109, 318));
-        mapaDiccionario.put("N10", new Point(151, 349));
-        mapaDiccionario.put("N11", new Point(139, 367));
-        mapaDiccionario.put("N12", new Point(121, 384));
-        mapaDiccionario.put("N13", new Point(167, 359));
-        mapaDiccionario.put("N14", new Point(244, 384));
-        mapaDiccionario.put("N15", new Point(220, 400));
-        mapaDiccionario.put("N16", new Point(201, 420));
-        mapaDiccionario.put("N17", new Point(148, 486));
-        mapaDiccionario.put("N18", new Point(173, 508));
-        mapaDiccionario.put("N19", new Point(212, 459));
-        mapaDiccionario.put("N20", new Point(236, 475));
-        mapaDiccionario.put("N21", new Point(293, 423));
-        mapaDiccionario.put("N21-2", new Point(280, 411));
-        mapaDiccionario.put("N22", new Point(246, 483));
-        mapaDiccionario.put("N22-2", new Point(271, 500));
-        mapaDiccionario.put("N23", new Point(302, 435));
-        mapaDiccionario.put("N24", new Point(334, 462));
-        mapaDiccionario.put("N25", new Point(340, 473));
-        mapaDiccionario.put("N25-2", new Point(359, 485));
-        mapaDiccionario.put("N26", new Point(378, 497));
-        mapaDiccionario.put("N27", new Point(472, 482));
-        mapaDiccionario.put("N28", new Point(484, 435));
-        mapaDiccionario.put("N29", new Point(514, 383));
-        mapaDiccionario.put("N30", new Point(484, 357));
-        mapaDiccionario.put("N30-2", new Point(462, 349));
-        mapaDiccionario.put("N31", new Point(404, 298));
-        mapaDiccionario.put("N32", new Point(544, 285));
-        mapaDiccionario.put("N33", new Point(557, 274));
-        mapaDiccionario.put("N34", new Point(533, 274));
-        mapaDiccionario.put("N35", new Point(470, 218));
-        mapaDiccionario.put("N36", new Point(496, 184));
-        mapaDiccionario.put("N37", new Point(485, 170));
-        mapaDiccionario.put("N38", new Point(424, 126));
-        mapaDiccionario.put("N39", new Point(355, 218));
-        mapaDiccionario.put("N40", new Point(342, 233));
-        mapaDiccionario.put("N41", new Point(287, 199));
-        mapaDiccionario.put("N42", new Point(268, 186));
-
-        // Transferimos todos los puntos creados a la lista
-        nodos.addAll(mapaDiccionario.values());
-
-        // Conexiones
-        String[][] aristas = {
-            {"N1", "N2"},
-            {"N2", "N7"},
-            {"N4", "N5"}, 
-            {"N4", "N7"},
-            {"N5", "N6"},
-            {"N7", "N8"},
-            {"N8", "N9"},
-            {"N9", "N10"},
-            {"N10", "N11"}, 
-            {"N10", "N13"},
-            {"N11", "N12"},
-            {"N13", "N15"},
-            {"N14", "N15"}, 
-            {"N14", "N21"},
-            {"N14", "N21-2"},
-            {"N15", "N16"},
-            {"N16", "N17"},
-            {"N17", "N18"},
-            {"N18", "N19"},
-            {"N19", "N20"},
-            {"N20", "N22"},
-            {"N21", "N21-2"}, 
-            {"N21", "N23"},
-            {"N21", "N31"},
-            {"N22", "N22-2"},
-            {"N23", "N24"},
-            {"N24", "N25"},
-            {"N25", "N25-2"},
-            {"N25-2", "N26"},
-            {"N26", "N27"},
-            {"N27", "N28"},
-            {"N28", "N29"},
-            {"N29", "N30"},
-            {"N30", "N30-2"}, 
-            {"N30", "N32"},
-            {"N30-2", "N31"},
-            {"N31", "N35"},
-            {"N32", "N33"}, 
-            {"N32", "N34"},
-            {"N34", "N35"},
-            {"N35", "N36"},
-            {"N36", "N37"},
-            {"N37", "N38"},
-            {"N38", "N39"},
-            {"N39", "N40"},
-            {"N40", "N41"},
-            {"N41", "N42"}
-        };
-
-        // Recorremos los pares y si ambos nodos existen se conectan
-        for (String[] par : aristas) {
-            Point p1 = mapaDiccionario.get(par[0]);
-            Point p2 = mapaDiccionario.get(par[1]);
-            
-            if (p1 != null && p2 != null) {
-                conexiones.add(new Point[]{p1, p2});
-            }
+            JOptionPane.showMessageDialog(this, "No se encontró mapas.png");
         }
     }
-
-    public void setModoActual(ModoEdicion modo) {
-        this.modoActual = modo;
-        resetearSeleccionTemporal(); 
+    public void setModoVisualizacion(TipoVisualizacion modoV){
+        this.modoVisualizacion = modoV;
+        repaint();
     }
-
-    /**
-     * Limpia la variable que guarda el click al conectar o desconectar.
-     */
-    public void resetearSeleccionTemporal() {
-        nodoSeleccionadoTemp = null;
-        repaint(); // Vuelve a dibujar el panel para quitar colores temporales
-    }
-
-    private void manejarClic(Point clic) {
-        switch (modoActual) {
-            case AGREGAR_NODO:
-                nodos.add(clic);
-                break;
-
-            case ELIMINAR_NODO:
-                Point nodoEliminar = encontrarNodoCercano(clic);
-                if (nodoEliminar != null) {
-                    nodos.remove(nodoEliminar);
-                    conexiones.removeIf(conexion -> conexion[0].equals(nodoEliminar) || conexion[1].equals(nodoEliminar));
-                }
-                break;
-
-            case CONECTAR_NODOS:
-                Point nodoParaConectar = encontrarNodoCercano(clic);
-                if (nodoParaConectar != null) {
-                    if (nodoSeleccionadoTemp == null) {
-                        nodoSeleccionadoTemp = nodoParaConectar;
-                    } else {
-                        if (!nodoSeleccionadoTemp.equals(nodoParaConectar)) {
-                            conexiones.add(new Point[]{nodoSeleccionadoTemp, nodoParaConectar});
-                        }
-                        nodoSeleccionadoTemp = null;
-                    }
-                }
-                break;
-
-            case ELIMINAR_CONEXION:
-                Point nodoParaDesconectar = encontrarNodoCercano(clic);
-                if (nodoParaDesconectar != null) {
-                    if (nodoSeleccionadoTemp == null) {
-                        nodoSeleccionadoTemp = nodoParaDesconectar;
-                    } else {
-                        conexiones.removeIf(conexion -> 
-                            (conexion[0].equals(nodoSeleccionadoTemp) && conexion[1].equals(nodoParaDesconectar)) ||
-                            (conexion[1].equals(nodoSeleccionadoTemp) && conexion[0].equals(nodoParaDesconectar))
-                        );
-                        nodoSeleccionadoTemp = null;
-                    }
-                }
-                break;
-                
-            default:
-                break;
+    public void limpiarVisualizacion(){
+        if(timerExploration != null){
+            timerExploration.stop();
         }
-        
-        repaint(); // Actualiza los graficos en pantalla
+        visitadosADibujar.clear();
+        pathADibujar.clear();
+        colaDeVisitados.clear();
+        repaint();
     }
-
-    /**
-     * Dado un clic del raton recorre la lista para ver si el clic
-     * ocurrio cerca de alguno de los nodos dentro de su radio.
-     */
-    private Point encontrarNodoCercano(Point clic) {
-        for (Point nodo : nodos) {
-            if (clic.distance(nodo) <= RADIO_NODO * 2) {
-                return nodo;
-            }
-        }
-        return null;
-    }
+    
 
     @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
+    protected void paintComponent(Graphics graficos) {
+        super.paintComponent(graficos);
+        Graphics2D graficosEn2D = (Graphics2D) graficos;
         
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
         // Fondo del mapa
-        if (imagenMapa != null) {
-            g2d.drawImage(imagenMapa, 0, 0, getWidth(), getHeight(), this);
+        if (imagenMapa != null){
+            graficosEn2D.drawImage(imagenMapa, 0, 0, 670, 520, this);
         }
 
-        // Lineas de conexion
-        g2d.setColor(new Color(41, 128, 185)); 
-        g2d.setStroke(new BasicStroke(3)); 
-        for (Point[] conexion : conexiones) {
-            g2d.drawLine(conexion[0].x, conexion[0].y, conexion[1].x, conexion[1].y);
-        }
-
-        // CAPA 3: PUNTOS (NODOS)
-        for (Point nodo : nodos) {
-            if (nodo.equals(nodoSeleccionadoTemp)) {
-                g2d.setColor(new Color(241, 196, 15)); // Se pone amarillo al hacer click
-            } else {
-                g2d.setColor(new Color(231, 76, 60)); 
+        // DIBUJO DE CONEXIONES
+        graficosEn2D.setColor(new Color(41, 128, 185)); 
+        graficosEn2D.setStroke(new BasicStroke(3)); 
+        Set<String>  conexionesDibujadas = new HashSet<>();
+        for(Node<MapPoint> nodo : grafo.getNodes()){
+            MapPoint puntoOrigen = nodo.getValue();
+            for(Node<MapPoint> vecino : grafo.getVecinos(puntoOrigen)){
+                MapPoint puntoDestino = vecino.getValue();
+                String conexion = puntoOrigen.getId() + "-" + puntoDestino.getId();
+                String inversa = puntoDestino.getId() + "-" + puntoOrigen.getId();
+                if(!conexionesDibujadas.contains(inversa)){
+                    graficosEn2D.drawLine(puntoOrigen.getX(), puntoOrigen.getY(), puntoDestino.getX(), puntoDestino.getY());
+                    conexionesDibujadas.add(conexion);
+                }
             }
-            
-            // Dibuja el circulo relleno centrado en las coordenadas
-            g2d.fillOval(nodo.x - RADIO_NODO, nodo.y - RADIO_NODO, RADIO_NODO * 2, RADIO_NODO * 2);
-            
-            // Dibuja un borde sutil alrededor de cada nodo
-            g2d.setColor(new Color(44, 62, 80));
-            g2d.setStroke(new BasicStroke(2));
-            g2d.drawOval(nodo.x - RADIO_NODO, nodo.y - RADIO_NODO, RADIO_NODO * 2, RADIO_NODO * 2);
         }
+        for(Node<MapPoint> nodo : grafo.getNodes()){
+            MapPoint punto = nodo.getValue();
+            int x = punto.getX();
+            int y = punto.getY();
+            graficosEn2D.setColor(new Color(47, 201, 235)); //las FIGURAS se MANTIENEN en la INTERFAZ
+            graficosEn2D.fillOval(x-RADIO_NODO, y-RADIO_NODO, RADIO_NODO*2, RADIO_NODO*2);
+            graficosEn2D.setColor(new Color(28, 134, 255));
+            graficosEn2D.fillOval(x-3, y-3, 6, 6);
+            graficosEn2D.setColor(Color.WHITE);
+            graficosEn2D.setFont(new Font("Arial", Font.BOLD, 12));
+            graficosEn2D.drawString(punto.getId(), x+10, y-10);
+        }
+        for(MapPoint punto : visitadosADibujar){
+            graficosEn2D.setColor(Color.ORANGE);
+            graficosEn2D.fillOval(punto.getX()-6, punto.getY()-6, 12, 12);
+        }
+        //DIBUJO DE LA RUTA FINAL
+        if(pathADibujar.size() >1){
+            graficosEn2D.setColor(Color.GREEN);
+            graficosEn2D.setStroke(new BasicStroke(5));
+            for(int i = 0; i < pathADibujar.size()-1; i++){
+                MapPoint puntoActual = pathADibujar.get(i);
+                MapPoint puntoSiguiente = pathADibujar.get(i+1);
+                graficosEn2D.drawLine(puntoActual.getX(), puntoActual.getY(), puntoSiguiente.getX(), puntoSiguiente.getY());
+            }
+        }
+        //punto que MARCAN la RUTA FINAL
+        for(MapPoint punto : pathADibujar){
+            graficosEn2D.setColor(Color.GREEN);
+            graficosEn2D.fillOval(punto.getX()-6, punto.getY()-6, 12, 12);
+        }
+    }
+    @Override
+    public void onNodeVisited(MapPoint nodoPunto){
+        System.out.println("MAP PANEL RECIBE:" + nodoPunto);
+        System.out.println("VISITANDO:" + nodoPunto.getId());
+        colaExploracion.add(nodoPunto);
+        if(timerExploration == null){
+            timerExploration = new Timer(300, e -> {
+                if(!colaExploracion.isEmpty()){
+                    MapPoint puntoSiguiente = colaExploracion.poll();
+                    visitadosADibujar.add(puntoSiguiente);
+                    repaint();
+                } else {
+                    timerExploration.stop();
+                    timerExploration = null;
+                }
+            });
+            timerExploration.start();
+        }
+        }
+    //METODO MOSTRAR RUTA
+    public void mostrarRuta(List<MapPoint> rutaExploracion){
+        pathADibujar.clear();
+        Timer timer = new Timer(300, null);
+        final int[] indice = {0};
+        timer.addActionListener(e -> {
+            if(indice[0] < rutaExploracion.size()){
+                pathADibujar.add(rutaExploracion.get(indice[0]));
+                indice[0]++;
+                repaint();
+            } else {
+                timer.stop();
+            }
+        });
+        timer.start();
+    }
+    //METODO EXPLORACION TERMINADA
+    public boolean exploracionTerminada(){
+        return colaDeVisitados.isEmpty() && (timerExploration == null || !timerExploration.isRunning());
+    }
+
+    public void setGrafo(Graph<MapPoint> grafo){
+        this.grafo = grafo;
+        repaint();
     }
 }

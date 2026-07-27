@@ -51,7 +51,12 @@ public class Graph<T> {
     }
 
     public Set<Node<T>> getVecinos(T current) {
-        return graph.getOrDefault(new Node<T>(current), new HashSet<Node<T>>());
+        for(Node<T> nodo : graph.keySet()){
+            if(nodo.getValue().equals(current)){
+                return graph.get(nodo);
+            }
+        }
+        return new HashSet<>();
     }
 
     public Set<Node<T>> getNodes() {
@@ -59,6 +64,25 @@ public class Graph<T> {
     }
     public Map<Node<T>, Set<Node<T>>> getGraph(){
         return graph;
+    }
+
+    public void removeConnection(T value1, T value2){
+        Node<T> nodo1 = new Node<>(value1);
+        Node<T> nodo2 = new Node<>(value1);
+        if(graph.containsKey(nodo1)){
+            graph.get(nodo1).remove(nodo2);
+        }
+        if(graph.containsKey(nodo2)){
+            graph.get(nodo2).remove(nodo1);
+        }
+    }
+    public void remove(T data){
+        Node<T> nodoEliminar = new Node<>(data);
+        graph.remove(nodoEliminar);
+        for(Set<Node<T>> vecinos : graph.values()){
+            vecinos.remove(nodoEliminar);
+        }
+
     }
     public boolean contains(T data){
         return graph.containsKey(new Node<T>(data));

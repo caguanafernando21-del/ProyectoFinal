@@ -11,48 +11,79 @@ import structures.graphs.PathFinder;
 import structures.graphs.PathResult;
 import structures.node.Node;
 
-public class DFSPathFinder<T> implements PathFinder<T>{
+public class DFSPathFinder<T> implements PathFinder<T> {
+
     @Override
-    public PathResult<T> find(Graph<T> graph, T start, T end, PathListener<T> listener) {
-        Set<T> visited = new LinkedHashSet<>();
-        List<T> path = new ArrayList<>();
+    public PathResult<T> find(
+            Graph<T> graph,
+            T start,
+            T end,
+            PathListener<T> listener) {
 
-        boolean encontrado = dfs(graph, start, end, visited, path, listener);
 
-        if(!encontrado) {
-            //Limpiar
-            path.clear();
-        }
-        
-        return new PathResult<>(new LinkedHashSet<>(visited), new LinkedHashSet<>(path));
+        Set<T> visitados = new LinkedHashSet<>();
+        List<T> ruta = new ArrayList<>();
+
+        dfs(graph, start, end, visitados, ruta, listener);
+
+        return new PathResult<>(
+                new LinkedHashSet<>(visitados),
+                new LinkedHashSet<>(ruta)
+        );
     }
 
-    private boolean dfs(Graph<T> graph, T current, T end, Set<T> visited,  List<T> path, PathListener<T> listener){
 
-        visited.add(current);
+    private boolean dfs(
+            Graph<T> graph,
+            T actual,
+            T destino,
+            Set<T> visitados,
+            List<T> ruta,
+            PathListener<T> listener) {
+
+
+        visitados.add(actual);
 
         if(listener != null){
-            listener.onNodeVisited(current); //LO VISITA
+            listener.onNodeVisited(actual);
         }
-        path.add(current);
 
-        //CASO BASE
-        //Node<T> nC = new Node<T>(current);
-        //Node<T> nE = new Node<T>(end); --> NO SE USAN YA
-        if(current.equals(end)){ //SI SE encuentra EL FINAL
+
+        ruta.add(actual);
+
+
+        if(actual.equals(destino)){
             return true;
+        }
 
-        }        
 
-        for(Node<T> vecino : graph.getVecinos(current)) {
-            if( ! visited.contains(vecino.getValue())){
-                boolean encon = dfs(graph, vecino.getValue(), end, visited, path, listener);
-                if(encon){
+        for(Node<T> vecino : graph.getVecinos(actual)){
+
+            T siguiente = vecino.getValue();
+
+
+            if(!visitados.contains(siguiente)){
+
+                boolean encontrado = dfs(
+                        graph,
+                        siguiente,
+                        destino,
+                        visitados,
+                        ruta,
+                        listener
+                );
+
+
+                if(encontrado){
                     return true;
                 }
             }
         }
-        path.remove(path.size()-1);
+
+
+        // backtracking
+        ruta.remove(ruta.size() - 1);
+
         return false;
     }
 }

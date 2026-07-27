@@ -11,4 +11,9 @@ public class MapaJson {
     public List<NodoJson> getNodos(){
         return nodos;
     }
+
+    public void setNodos(List<NodoJson> nodos) {
+        this.nodos = nodos;
+    }
+    
 }
