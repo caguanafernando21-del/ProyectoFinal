@@ -1,8 +1,10 @@
 package structures.graphs;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
 import structures.node.Node;
 import structures.graphs.implementations.Temperatura;
 
@@ -10,14 +12,15 @@ public class Graph<T> {
     // Mapa: Clave = Nodo, Valor = Conjunto de Nodos vecinos a los que puede ir
         private Map<Node<T>, Set<Node<T>>> graph;
 
+
     public Graph(){
-        this.graph = new HashMap<Node<T>, Set<Node<T>>>();
+        this.graph = new LinkedHashMap<Node<T>, Set<Node<T>>>();
     }
 
     // Añade un nodo al grafo sin conexiones (aislado)
     public void add(T data){
         Node<T> node = new Node<T>(data);
-        graph.putIfAbsent(node, new HashSet<Node<T>>()); // putIfAbsent evita sobrescribir si ya existe
+        graph.putIfAbsent(node, new LinkedHashSet<Node<T>>());
     }
 
     // Crea una conexión Bidireccional (Grafo no Dirigido)
@@ -55,7 +58,41 @@ public class Graph<T> {
     
     // Devuelve los vecinos de un nodo específico (o un conjunto vacío si no tiene/no existe)
     public Set<Node<T>> getVecinos(T current) {
-        return graph.getOrDefault(new Node<T>(current), new HashSet<Node<T>>());
+        for(Node<T> nodo : graph.keySet()){
+            if(nodo.getValue().equals(current)){
+                return graph.get(nodo);
+            }
+        }
+        return new HashSet<>();
+    }
+
+    public Set<Node<T>> getNodes() {
+        return graph.keySet();
+    }
+    public Map<Node<T>, Set<Node<T>>> getGraph(){
+        return graph;
+    }
+
+    public void removeConnection(T value1, T value2){
+        Node<T> nodo1 = new Node<>(value1);
+        Node<T> nodo2 = new Node<>(value2);
+        if(graph.containsKey(nodo1)){
+            graph.get(nodo1).remove(nodo2);
+        }
+        if(graph.containsKey(nodo2)){
+            graph.get(nodo2).remove(nodo1);
+        }
+    }
+    public void remove(T data){
+        Node<T> nodoEliminar = new Node<>(data);
+        graph.remove(nodoEliminar);
+        for(Set<Node<T>> vecinos : graph.values()){
+            vecinos.remove(nodoEliminar);
+        }
+
+    }
+    public boolean contains(T data){
+        return graph.containsKey(new Node<T>(data));
     }
 
     // Método auxiliar: Busca y retorna el objeto Node<T> en el grafo usando su valor (T)

@@ -1,64 +1,59 @@
 package structures.graphs.implementations;
-import java.util.HashSet;
+import listeners.PathListener;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import structures.graphs.Graph;
 import structures.graphs.PathFinder;
 import structures.graphs.PathResult;
 import structures.node.Node;
 
 public class BFSPathFinder<T> implements PathFinder<T>{
-    @Override
-    public PathResult<T> find(Graph<T> graph, T start, T end) {
-        Queue<T> queue = new LinkedList<>();  // Cola para procesar nodos en orden de llegada
-        Set<T> visitados = new LinkedHashSet<>(); // Evita ciclos guardando los que ya encolamos
-        Map<Node<T>, Node<T>> parent = new LinkedHashMap<>(); // Guarda "quién conoció a quién" para armar el camino final
-        Set<T> visited = new LinkedHashSet<>(); // Registra el orden real en que analizamos los nodos
 
-        // Inicializamos con el nodo de inicio
+    @Override
+    public PathResult<T> find(Graph<T> graph, T start, T end, PathListener<T> listener) {
+        Queue<T> queue = new LinkedList<>();
+        LinkedHashSet<T> visitados = new LinkedHashSet<>();
+        Map<T, T> parent = new LinkedHashMap<>();
+        LinkedHashSet<T> visited = new LinkedHashSet<>();
+
         queue.add(start);
         visitados.add(start);
-        parent.put(new Node<>(start), null); // El inicio no tiene padre
+        parent.put(start, null);
         while(!queue.isEmpty()) {
-            T current = queue.poll(); // Saca el primer nodo de la cola
-            visited.add(current); // Se marca como analizado
-            // Si llegamos al destino, se construye el camino hacia atrás y se acaba
+            T current = queue.poll(); // Saca el valor que se encuentra primero en la cola
+            visited.add(current); //Añade el valor sacado de la cola al LinkedHashSet del visited
+            if(listener != null){
+                listener.onNodeVisited(current);
+            }
             if(current.equals(end)) { // pregunta si el valor sacado de la cola es igual al valor final que buscamos  (end)
 
                 return new PathResult<>(visited, buildPath(parent, end));
             }
-            // Se explora todos los vecinos del nodo actual
+            //
             for(Node<T> vecino : graph.getVecinos(current)) { // vecino  pasa a ser los valores que conoce el nodo
-                if(!visitados.contains(vecino.getValue())) { // Si no lo encolamos antes
-                    visitados.add(vecino.getValue()); // Lo marcamos
-                    parent.put(vecino, new Node<>(current)); // Se registra que "current" encontró a "vecino"
-                    queue.add(vecino.getValue()); // Se añade el valor del vecino en la cola para después analizarlo
+                T valorVecino = vecino.getValue();
+                if(!visitados.contains(valorVecino)) { //(Si visitados no contiene al valor del vecino)
+                    visitados.add(valorVecino); // Se añade al LinkedHashSet
+                    parent.put(valorVecino, current); // Indica que en el vecino añade otro al valor sacado de la cola
+                    queue.add(valorVecino); // Se añade el valor del vecino en la cola queue
                 }
 
             }
         }
-        // Si la cola se vacía y no encontramos 'end', retornamos sin camino
-        return new PathResult<>(visited, new HashSet<>());
+        return new PathResult<>(visited, new LinkedHashSet<>());
     }
 
-    // Reconstruye el camino desde el destino hasta el inicio usando el mapa 'parent'
-    private Set<T> buildPath(Map<Node<T>, Node<T>> parent, T end) {
-        Set<T> path = new LinkedHashSet<>(); // Usamos LinkedHashSet para mantener el orden
-        
-        Node<T> nEnd = new Node<>(end);
-        // for(int i = 0; i<size; i = i + 1)
-        // Una variable de tipo Node<T> llamado at = nEnd (nodo end), 
-        
+    private LinkedHashSet<T> buildPath(Map<T, T> parent, T end) {
+        LinkedList<T> path = new LinkedList<>();
+        T actual = end;
 
-        // entonces después at parent se vuelve el nodo que conoce al NE siendo ND
-        for(Node<T> at = nEnd; at != null; at =  parent.get(at)) {
-            // mientras at sea diferente de null, en path se añade al valor de at (si es NE, entra solo su valor E)
-            path.add(at.getValue());
+        while(actual != null){
+            path.addFirst(actual);
+            actual = parent.get(actual);
         }
-        return path;
+        return new LinkedHashSet<>(path);
     }
 }

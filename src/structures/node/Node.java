@@ -1,90 +1,76 @@
 package structures.node;
-
 import structures.graphs.implementations.Temperatura;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class Node<T> {
-    private T value; // El dato real que guarda el nodo
-    private Node<T> left; // Referencia para árboles (hijo izquierdo)
-    private Node<T> right; // Referencia para árboles (hijo derecho)
+    //nodos AHORA tienen que SERVIR PARA RUTAS
+    //ya no PARA ÁRBOLES BINARIOS por AHORA
+    private T value;
+    private Set<Node<T>> vecinos;
     private Temperatura temperatura;
+    
 
-    // Constructor: Crea el nodo con su valor, sin conexiones iniciales
+    // Constructor ES LO QUE CREA EL NODO
+    // NECESTIO SOLO EL VALOR, LAS REFERENCIAS SE INICIALIZAN EN NULL
     public Node(T value) {
         this.value = value;
-        this.left = null;
-        this.right = null;
+        this.vecinos = new LinkedHashSet<>(); //vecinos en NODOS NO PUEDEN REPETIRSE: SET
+        this.temperatura = null; // 3. Inicializamos en null
+
     }
 
-    // Cuando creas un nodo, puedes asignarle una temperatura
+    // --- MÉTODOS DE TEMPERATURA ---
+    public Temperatura getTemperatura() {
+        return temperatura;
+    }
+
     public void setTemperatura(Temperatura temperatura) {
         this.temperatura = temperatura;
     }
 
-    public Temperatura getTemperatura() {
-        return this.temperatura;
-    }
-
-    // Método rápido para saber si el nodo tiene datos de temperatura
     public boolean tieneTemperatura() {
         return this.temperatura != null;
     }
 
-    // Getters y Setters estándar
     public T getValue() {
         return value;
     }
 
+
     public void setValue(T value) {
         this.value = value;
     }
-
-    public Node<T> getLeft() {
-        return left;
-    }
-
-    public void setLeft(Node<T> left) {
-        this.left = left;
-    }
-
-    public Node<T> getRight() {
-        return right;
-    }
-
-    public void setRight(Node<T> right) {
-        this.right = right;
+   
+    public Set<Node<T>> getVecinos() {
+        return vecinos;
     }
 
     @Override
     public String toString() {
-        return "Node [" + value + "]";
+        return "Nodo [" + value + "]"; //representacion del NODO
     }
-
-    // hashCode genera un número único basado en el valor.
-    // Importante para guardar Nodos en HashMaps o HashSets.
     @Override
-    public int hashCode() {
-        return value.hashCode();
-    }
-
-    // equals compara si dos nodos son Exactamente iguales basándose en su valor interno.
-
-
-    @Override
-    @SuppressWarnings("unchecked")
     public boolean equals(Object obj) {
         if (this == obj)
-            return true; // Es el mismo objeto en memoria
-        if (obj == null)
+            return true;
+        if (obj instanceof Node<?> == false){ //evitar escribir por ejemplo UN STRING y que sea CONSIDERADO COMO NODO
             return false;
-        if (getClass() != obj.getClass())
-            return false; // Tipos diferentes o nulos
-        Node<T> other = (Node<T>) obj;
-        if (value == null) {
-            if (other.value != null)
-                return false;
-        } else if (!value.equals(other.value)) // Compara los valores reales
-            return false;
-        return true;
+        }
+        Node<?> otroNodo = (Node<?>) obj; //CONVIERTE a NODO para que no se quede en OBJ
+        return value.equals(otroNodo.value); 
     }
 
+    @Override
+    public int hashCode() {
+        return value.hashCode(); //se debe producir un MISMO HASHCODE 
+        //en el caso de que DOS OBJETOS SEAN IGUALES
+    }
+    public void setVecinos(Set<Node<T>> vecinos) {
+        this.vecinos = vecinos;
+    }
+
+     public void añadirVecinos(Node<T> nodoAñadir){
+        vecinos.add(nodoAñadir);
+    }
 }

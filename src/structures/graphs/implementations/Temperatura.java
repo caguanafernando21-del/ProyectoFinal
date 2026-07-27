@@ -4,16 +4,15 @@ public class Temperatura {
     private double valor;
     private String unidad;
 
-    // Constructor principal
+    // Constructor completo
     public Temperatura(double valor, String unidad) {
         this.valor = valor;
         this.unidad = unidad;
     }
 
-    // Constructor simplificado (asume grados Centígrados por defecto)
+    // Constructor rápido (por defecto usa °C)
     public Temperatura(double valor) {
-        this.valor = valor;
-        this.unidad = "°C";
+        this(valor, "°C");
     }
 
     // Getters y Setters
@@ -33,7 +32,7 @@ public class Temperatura {
         this.unidad = unidad;
     }
 
-    // Método útil para mostrar la temperatura en la interfaz gráfica
+    // Para mostrarlo bonito como Texto
     @Override
     public String toString() {
         return valor + " " + unidad;
