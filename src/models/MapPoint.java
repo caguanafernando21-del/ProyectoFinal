@@ -1,73 +1,51 @@
 package models;
+
+import java.awt.Color;
+
 public class MapPoint {
-    //para un MAPA, los nodos necesitan CONOCER la posicion (dirX, dirY)
-    //como posición VISUAL
-    private final String id;
+
+    // Nombre del nodo 
+    private String nombre;
+    // Posición del nodo en el mapa
     private int x;
     private int y;
 
-    public MapPoint(String id, int x, int y) {
-        this.id = id;
+    // Color del nodo
+    private Color color;
+
+    // Constructor
+    public MapPoint(String nombre, int x, int y) {
+
+        this.nombre = nombre;
         this.x = x;
         this.y = y;
+
+        color = Color.BLUE;
     }
 
-    public String getId() {
-        return id;
+    // Devuelve el nombre del nodo
+    public String getNombre() {
+        return nombre;
     }
 
+    // Devuelve la posición X
     public int getX() {
         return x;
     }
 
+    // Devuelve la posición Y
     public int getY() {
         return y;
     }
-    // probablemente --> el HashMap pudo haber GUARDADO un nodo
-    //usando el hash anterior (por ejemplo "NA") --> puede provocar conflictos al BUSCAR
-    //ENTONCES--> No usar setIDNodo
 
-    /* public void setIdNodo(String idNodo) {
-        //this.idNodo = idNodo;
-    } */
-
-    public void setCoorX(int x) {
-        this.x = x;
+    // Devuelve el color
+    public Color getColor() {
+        return color;
     }
 
-    public void setCoorY(int y) {
-        this.y = y;
+    // Cambia el color
+    public void setColor(Color color) {
+        this.color = color;
     }
-
-    //hashCode() && equals()
-    @Override
-    public int hashCode() {
-        return id.hashCode(); //si se depende de COORDENADAS
-        //y luego se CAMBIAN --> OBJETO CAMBIA HASH tras estar dentro del mapa  --> eliminar el hashCode() habitual
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-        if(getClass() != obj.getClass()){
-            return false;
-        }
-        MapPoint otro = (MapPoint)obj; //<--- CASTEARLO porque SINO se queda con OBJECT
-        return id.equals(otro.id); 
-        //X y Y no van aqui --> (x,y) indican SOLO donde DIBUJAR --> no PONER
-    }
-
-    @Override
-    public String toString() {
-        return "PuntoMapa [id=" + id + ", x=" + x + ", y=" + y + "]";
-    }
-    
-
-    
-
-    
-
 
 }
