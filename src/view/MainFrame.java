@@ -1,4 +1,3 @@
-// Ubicacion: src/view/MainFrame.java
 package view;
 
 import java.awt.*;
@@ -11,6 +10,7 @@ import javax.swing.border.EmptyBorder;
 
 import controllers.MapController;
 import models.MapPoint;
+import models.VisualizationMode.ModoEdicion;
 import models.VisualizationMode.TipoVisualizacion;
 import persistance.FileGraphRepository;
 import structures.graphs.Graph;
@@ -20,352 +20,231 @@ import structures.graphs.implementations.DFSPathFinder;
 import structures.node.Node; 
 
 public class MainFrame extends JFrame {
-    
 
-    public MainFrame() {
-    }
+    // Paleta de colores ajustada a la imagen
+    private static final Color COLOR_FONDO_MENU = new Color(38, 50, 66);      // Azul oscuro lateral
+    private static final Color COLOR_BOTON = new Color(50, 68, 90);           // Fondo del botón
+    private static final Color COLOR_BOTON_HOVER = new Color(65, 88, 115);    // Hover
+    private static final Color COLOR_TEXTO = new Color(205, 218, 230);        // Texto claro
+    private static final Color COLOR_SALIR = new Color(217, 83, 79);          // Rojo para "Salir"
+    private static final Color COLOR_TITULO_SECCION = new Color(130, 150, 175);// Título de categorías
 
-    public MainFrame(GraphicsConfiguration gc, MapPanel mapa, Graph<MapPoint> grafoResultado,
-            FileGraphRepository repositorio, MapController controladorMapa) {
-        super(gc);
-        this.mapa = mapa;
-        this.grafoResultado = grafoResultado;
-        this.repositorio = repositorio;
-        this.controladorMapa = controladorMapa;
-    }
-
-    public MainFrame(String title, MapPanel mapa, Graph<MapPoint> grafoResultado, FileGraphRepository repositorio,
-            MapController controladorMapa) throws HeadlessException {
-        super(title);
-        this.mapa = mapa;
-        this.grafoResultado = grafoResultado;
-        this.repositorio = repositorio;
-        this.controladorMapa = controladorMapa;
-    }
-
-    public MainFrame(String title, GraphicsConfiguration gc, MapPanel mapa, Graph<MapPoint> grafoResultado,
-            FileGraphRepository repositorio, MapController controladorMapa) {
-        super(title, gc);
-        this.mapa = mapa;
-        this.grafoResultado = grafoResultado;
-        this.repositorio = repositorio;
-        this.controladorMapa = controladorMapa;
-    }
-
-    // Paleta de colores moderna
-    private static final Color COLOR_FONDO_MENU = new Color(44, 62, 80);      // Azul oscuro grisaceo
-    private static final Color COLOR_BOTON = new Color(52, 73, 94);             // Fondo de boton normal
-    private static final Color COLOR_BOTON_HOVER = new Color(41, 128, 185);   // Azul brillante al pasar el raton
-    private static final Color COLOR_TEXTO = new Color(236, 240, 241);        // Blanco humo
     // Fuentes
-    private static final Font FUENTE_TITULO = new Font("Segoe UI", Font.BOLD, 28);
-    private static final Font FUENTE_SECCION = new Font("Segoe UI", Font.BOLD, 14);
-    private static final Font FUENTE_BOTON = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font FUENTE_SECCION = new Font("Segoe UI", Font.BOLD, 12);
+    private static final Font FUENTE_BOTON = new Font("Segoe UI", Font.PLAIN, 13);
 
-    //MOTOR del proyecto
+    // Atributos del sistema
     private MapPanel mapa;
     private Graph<MapPoint> grafoResultado;
     private FileGraphRepository repositorio = new FileGraphRepository();
     private MapController controladorMapa;
-    
+
+    // Botones del menú lateral
+    private JButton btnDfs;
+    private JButton btnBfs;
+    private JButton btnAgregarNodo;
+    private JButton btnEliminarNodo;
+    private JButton btnAgregarConexion;
+    private JButton btnEliminarConexion;
+    private JButton btnTemperatura;
+    private JButton btnSalir;
+
     public MainFrame(MapController controladorMapa) {
-        System.out.println("CREANDO MAINFRAME");
         this.controladorMapa = controladorMapa;
-        setTitle("Explorador de rutas");
-        // Configuracion de la ventana principal
-        setSize(1100, 700);
+        
+        // Configuración de la ventana
+        setTitle("Google Maps");
+        setSize(1000, 680);
+        setResizable(false);    
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-        grafoResultado = controladorMapa.getGrafo(); //el controlador OBTIENE LOS DATOS
+
+        // Grafo y panel de mapa
+        grafoResultado = controladorMapa.getGrafo();
         mapa = new MapPanel(grafoResultado);
         mapa.setPreferredSize(new Dimension(670, 520));
 
-        //parte del MENU LATERAL
+        // Configurar el callback para ejecutar búsquedas al hacer clic en los nodos del mapa
+        mapa.setSearchCallback((tipo, inicio, fin) -> {
+            mapa.limpiarVisualizacion();
+            mapa.setModoVisualizacion(TipoVisualizacion.EXPLORATION);
+
+            structures.graphs.PathFinder<MapPoint> finder = tipo.equals("DFS") ? new DFSPathFinder<>() : new BFSPathFinder<>();
+            PathResult<MapPoint> resultado = controladorMapa.buscarRuta(inicio, fin, mapa, finder);
+            
+            if (resultado != null && resultado.getPath() != null) {
+                Timer esperar = new Timer(100, null);
+                esperar.addActionListener(ev -> {
+                    if (mapa.exploracionTerminada()) {
+                        mapa.mostrarRuta(new ArrayList<>(resultado.getPath()));
+                        esperar.stop();
+                    }
+                });
+                esperar.start();
+            } else {
+                JOptionPane.showMessageDialog(this, "No se encontró una ruta entre los nodos seleccionados.", "Sin ruta", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        // PANEL LATERAL (Menú)
         JPanel menuPanel = new JPanel();
-        menuPanel.setPreferredSize(new Dimension(270, 700));
+        menuPanel.setPreferredSize(new Dimension(240, 680));
         menuPanel.setBackground(COLOR_FONDO_MENU);
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-        menuPanel.setBorder(new EmptyBorder(20, 13, 20, 15));
-        menuPanel.add(Box.createVerticalStrut(20));
-        //GRAFO
-        agregarCategoria(menuPanel, "GRAFO");
-        JButton btnAgregarNodo = crearBotonMenu("+ Agregar nodo");
-        JButton btnEliminarNodo = crearBotonMenu("- Eliminar nodo");
-        JButton btnAgregarConexion = crearBotonMenu("+ Agregar conexion");
-        JButton btnEliminarConexion = crearBotonMenu("- Eliminar conexion");
+        menuPanel.setBorder(new EmptyBorder(25, 15, 25, 15));
+
+        // 1. MÉTODOS DE BÚSQUEDA
+        agregarCategoria(menuPanel, "MÉTODOS DE BÚSQUEDA");
+        btnDfs = crearBotonMenu("Busqueda a profundidad", COLOR_TEXTO);
+        btnBfs = crearBotonMenu("Busqueda por niveles", COLOR_TEXTO);
+
+        menuPanel.add(btnDfs);
+        menuPanel.add(Box.createVerticalStrut(8));
+        menuPanel.add(btnBfs);
+        menuPanel.add(Box.createVerticalStrut(25));
+
+        // 2. NODOS
+        agregarCategoria(menuPanel, "NODOS");
+        btnAgregarNodo = crearBotonMenu("Agregar Nodo", COLOR_TEXTO);
+        btnEliminarNodo = crearBotonMenu("Eliminar Nodo", COLOR_TEXTO);
+        btnAgregarConexion = crearBotonMenu("Conectar Nodos", COLOR_TEXTO);
+        btnEliminarConexion = crearBotonMenu("Eliminar Conexion", COLOR_TEXTO);
 
         menuPanel.add(btnAgregarNodo);
-        // agregar un ESPACIO después de CADA BOTON
-        menuPanel.add(Box.createVerticalStrut(5));
+        menuPanel.add(Box.createVerticalStrut(8));
         menuPanel.add(btnEliminarNodo);
-        menuPanel.add(Box.createHorizontalStrut(5));
+        menuPanel.add(Box.createVerticalStrut(8));
         menuPanel.add(btnAgregarConexion);
-        menuPanel.add(Box.createHorizontalStrut(5));
+        menuPanel.add(Box.createVerticalStrut(8));
         menuPanel.add(btnEliminarConexion);
-        menuPanel.add(Box.createHorizontalStrut(25));
+        menuPanel.add(Box.createVerticalStrut(25));
 
-        //ALGORITMOS
-        agregarCategoria(menuPanel, "ALGORITMOS");
-        JButton btnBfs = crearBotonMenu("Breadth-First-Search (BFS)");
-        JButton btnDfs = crearBotonMenu("Depth-First-Search (DFS)");
-        menuPanel.add(btnBfs);
-        menuPanel.add(Box.createVerticalStrut(5));
-        menuPanel.add(btnDfs);
+        // 3. EXTRAS
+        agregarCategoria(menuPanel, "Extras");
+        btnTemperatura = crearBotonMenu("Temperatura", COLOR_TEXTO);
+        btnSalir = crearBotonMenu("Salir", COLOR_SALIR);
+
+        menuPanel.add(btnTemperatura);
+        menuPanel.add(Box.createVerticalStrut(8));
+        menuPanel.add(btnSalir);
         menuPanel.add(Box.createVerticalGlue());
-        
-        //CENTRO DEL PANEL
+
+        // CONTENEDOR CENTRAL DEL MAPA
         JPanel contenedorMapa = new JPanel(new BorderLayout());
-        contenedorMapa.setBorder(new EmptyBorder(20, 20, 20, 20));
-        JLabel titulo = new JLabel("Venecia, Italia");
+        contenedorMapa.setBorder(new EmptyBorder(15, 20, 20, 20));
+        contenedorMapa.setBackground(Color.WHITE);
+
+        JLabel titulo = new JLabel("Mapa de Italia");
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        contenedorMapa.add(titulo, BorderLayout. NORTH);
-        contenedorMapa.add(mapa, BorderLayout.CENTER); //le CENTRA al MAPA
+        titulo.setForeground(new Color(40, 50, 60));
+        titulo.setBorder(new EmptyBorder(0, 0, 15, 0));
+
+        contenedorMapa.add(titulo, BorderLayout.NORTH);
+        contenedorMapa.add(mapa, BorderLayout.CENTER);
+
+        // Ensamblado general
         add(menuPanel, BorderLayout.WEST);
         add(contenedorMapa, BorderLayout.CENTER);
-        crearBarraMenu(); //corregir
 
+        crearBarraMenu();
+        configurarEventos();
+    }
 
-        //BOTONES Y sus EVENTOS
+    private void configurarEventos() {
+        // ALGORITMO BFS (Selección directa por clics en el mapa)
+        btnBfs.addActionListener(e -> {
+            mapa.activarModoSeleccionBusqueda("BFS");
+        });
+        
+        // ALGORITMO DFS (Selección directa por clics en el mapa)
+        btnDfs.addActionListener(e -> {
+            mapa.activarModoSeleccionBusqueda("DFS");
+        });
+
+        // BOTONES Y SUS EVENTOS DIRECTOS EN EL MAPA
         btnAgregarNodo.addActionListener(e -> {
-            JTextField txtId = new JTextField();
-            JTextField txtX = new JTextField();
-            JTextField txtY = new JTextField();
-
-            Object[] campos = {
-                "ID del nodo:", txtId,
-                "Coordenada x:", txtX,
-                "Coordenada y:", txtY
-            };
-            int opcion = JOptionPane.showConfirmDialog(this, campos, "Agregar nodo", JOptionPane.OK_CANCEL_OPTION);
-            if(opcion == JOptionPane.OK_OPTION){
-                try {
-                    String id = txtId.getText().trim();
-                    int x = Integer.parseInt(txtX.getText());
-                    int y = Integer.parseInt(txtY.getText());
-                    boolean existe = false; //no EXISTE
-                    for(Node<MapPoint> nodo : grafoResultado.getNodes()){
-                        if(nodo.getValue().getId().equalsIgnoreCase(id)){
-                            existe = true;
-                            break;
-                        }
-                    }
-                    if(existe){
-                        JOptionPane.showMessageDialog(this, "El ID ya existe.", "Error.", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    MapPoint nuevo = new MapPoint(id, x, y);
-                    grafoResultado.add(nuevo);
-                    actualizarMapa();
-                    JOptionPane.showMessageDialog(this, "Nodo agregado exitosamente.");
-                } catch (NumberFormatException exc1){
-                    JOptionPane.showMessageDialog(this, "Las coordenadas deben ser números.");
-                }
-            }
+            mapa.setModoActual(ModoEdicion.AGREGAR_NODO);
+            JOptionPane.showMessageDialog(this, "Modo Agregar Nodo activado.\nHaga clic en el mapa para colocar el nodo.", "Modo Edición", JOptionPane.INFORMATION_MESSAGE);
         });
 
         btnEliminarNodo.addActionListener(e -> {
-            String id = JOptionPane.showInputDialog(this, "ID del nodo a ser eliminado");
-            if(id == null){
-                return;
-            }
-            MapPoint eliminar = new MapPoint(id, 0, 0);
-            grafoResultado.remove(eliminar);
-            actualizarMapa();
+            mapa.setModoActual(ModoEdicion.ELIMINAR_NODO);
+            JOptionPane.showMessageDialog(this, "Modo Eliminar Nodo activado.\nHaga clic sobre el nodo que desea eliminar.", "Modo Edición", JOptionPane.INFORMATION_MESSAGE);
         });
-        //agregar UNA CONEXION
+
         btnAgregarConexion.addActionListener(e -> {
-            String origenId = JOptionPane.showInputDialog(this, "Nodo origen");
-            String destinoId = JOptionPane.showInputDialog(this, "Nodo destino");
-            if(origenId == null || destinoId == null){
-                return;
-            }
-            MapPoint puntoOrigenVacio = null;
-            MapPoint puntoDestinoVacio = null;
-            for(Node<MapPoint> nodo : grafoResultado.getNodes()){
-                if(nodo.getValue().getId().equalsIgnoreCase(origenId)){
-                    puntoOrigenVacio = nodo.getValue(); //ahora YA NO ES VACIO
-                }
-                if(nodo.getValue().getId().equalsIgnoreCase(destinoId)){
-                    puntoDestinoVacio = nodo.getValue(); //tampoco es VACIO
-                }
-            }
-            if(puntoOrigenVacio == null || puntoDestinoVacio == null){
-                JOptionPane.showMessageDialog(this, "Nodo inexistente");
-                return;
-            }
-            grafoResultado.addConection(puntoOrigenVacio, puntoDestinoVacio);
-            actualizarMapa();
+            mapa.setModoActual(ModoEdicion.CONECTAR_NODOS);
+            JOptionPane.showMessageDialog(this, "Modo Conectar Nodos activado.\nHaga clic en dos nodos sucesivamente para enlazarlos.", "Modo Edición", JOptionPane.INFORMATION_MESSAGE);
         });
-        //boton ELIMINAR CONEXION
+
         btnEliminarConexion.addActionListener(e -> {
-            String origenId = JOptionPane.showInputDialog(this, "Nodo origen");
-            String destinoId = JOptionPane.showInputDialog(this, "Nodo destino");
-            if(origenId == null || destinoId == null){
-                return;
-            }
-            MapPoint puntoOrigenVacio = null;
-            MapPoint puntoDestinoVacio = null;
-            for(Node<MapPoint> nodo : grafoResultado.getNodes()){
-                if(nodo.getValue().getId().equalsIgnoreCase(origenId)){
-                    puntoOrigenVacio = nodo.getValue(); //ahora YA NO ES VACIO
-                }
-                if(nodo.getValue().getId().equalsIgnoreCase(destinoId)){
-                    puntoDestinoVacio = nodo.getValue(); //tampoco es VACIO
-                }
-            }
-            if(puntoOrigenVacio != null || puntoDestinoVacio != null){
-                grafoResultado.removeConnection(puntoOrigenVacio, puntoDestinoVacio);
-                actualizarMapa();
-            }
-        } );
+            mapa.setModoActual(ModoEdicion.ELIMINAR_CONEXION);
+            JOptionPane.showMessageDialog(this, "Modo Eliminar Conexión activado.\nHaga clic en los dos nodos conectados para romper el enlace.", "Modo Edición", JOptionPane.INFORMATION_MESSAGE);
+        });
+
         getContentPane().setBackground(Color.WHITE);
 
-        //--------------------------------- OTRA PARTE ---------------------------------------------
-        btnBfs.addActionListener(e -> {
-            System.out.println("PRESIONE BFS");
-            mapa.limpiarVisualizacion();
-            mapa.setModoVisualizacion(TipoVisualizacion.EXPLORATION);
-            MapPoint puntoInicio = obtenerNodo("N1");
-            MapPoint puntoFinal = obtenerNodo("N33");
-            if(puntoInicio == null || puntoFinal == null){
-                JOptionPane.showMessageDialog(this, "No se encontró el nodo inicio o destino");
-                return;
-            }
-            //PathResult<MapPoint> resultado = bfs.find(grafoResultado, puntoInicio, puntoFinal, mapa); //en lugar de esta linea en MainFrame
-            PathResult<MapPoint> resultado = controladorMapa.buscarRuta(puntoInicio, puntoFinal, mapa, new BFSPathFinder<>());
-            Timer esperar = new Timer(100, null);
-            esperar.addActionListener(ev -> {
-                if(mapa.exploracionTerminada()){
-                    mapa.mostrarRuta(new ArrayList<>(resultado.getPath()));
-                    esperar.stop();
-                }
-            });
-            esperar.start();
-        });
-        
-        btnDfs.addActionListener(e -> {
-            mapa.limpiarVisualizacion();
-            mapa.setModoVisualizacion(TipoVisualizacion.EXPLORATION);
-            MapPoint puntoInicio = obtenerNodo("N1");
-            MapPoint puntoFinal = obtenerNodo("N33");
-            if(puntoInicio == null || puntoFinal == null){
-                JOptionPane.showMessageDialog(this, "No se encontró el nodo inicio o destino");
-                return;
-            }
-            PathResult<MapPoint> resultado = controladorMapa.buscarRuta(puntoInicio, puntoFinal, mapa, new DFSPathFinder<>());
-            Timer esperar = new Timer(100, null);
-             esperar.addActionListener(ev -> {
-                if(mapa.exploracionTerminada()){
-                    mapa.mostrarRuta(new ArrayList<>(resultado.getPath()));
-                    esperar.stop();
-                }
-            });
-            esperar.start();
+        // TOGGLE TEMPERATURA
+        btnTemperatura.addActionListener(e -> {
+            mapa.toggleTemperaturas();
+            mapa.repaint();
         });
 
-        JPanel pnlPrincipal = new JPanel(new BorderLayout(15, 15));
-        JPanel pnlLateral = new JPanel(new BorderLayout());
-        pnlLateral.setPreferredSize(new Dimension(240, 700));
-        pnlLateral.setBackground(COLOR_FONDO_MENU);
-        JPanel pnlOpcionesPrincipales = new JPanel();
-        pnlOpcionesPrincipales.setLayout(new BoxLayout(pnlOpcionesPrincipales, BoxLayout.Y_AXIS));
-        pnlOpcionesPrincipales.setBackground(COLOR_FONDO_MENU);
-
-        estilizarBoton(btnAgregarNodo);
-        estilizarBoton(btnEliminarNodo);
-        estilizarBoton(btnAgregarConexion);
-        estilizarBoton(btnEliminarConexion);
-        estilizarBoton(btnBfs);
-        estilizarBoton(btnDfs);
-
-        // Menu lateral
-
-        // Agregar paneles principales a la ventana
-        add(menuPanel, BorderLayout.WEST);
-        add(contenedorMapa, BorderLayout.CENTER);
+        // BOTÓN SALIR
+        btnSalir.addActionListener(e -> System.exit(0));
     }
-    private void crearBarraMenu(){
+
+    private void crearBarraMenu() {
         JMenuBar barra = new JMenuBar();
         JMenu archivo = new JMenu("Archivo");
         JMenuItem guardar = new JMenuItem("Guardar mapa");
         JMenuItem cargar = new JMenuItem("Cargar mapa");
+
         guardar.addActionListener(e -> {
-        repositorio.guardarArchivo(grafoResultado, "src/resources/mapa.json");
-            JOptionPane.showMessageDialog(this, "Mapa guardado correctamente");});
+            repositorio.guardarArchivo(grafoResultado, "src/resources/mapa.json");
+            JOptionPane.showMessageDialog(this, "Mapa guardado correctamente.");
+        });
+
         cargar.addActionListener(e -> {
             grafoResultado = repositorio.cargarArchivo("src/resources/mapa.json");
             mapa.setGrafo(grafoResultado);
             actualizarMapa();
-            JOptionPane.showMessageDialog(this, "Mapa cargado correctamente");});
-        JMenu menuModoVisualizacion = new JMenu("Modo de visualizacion");
-        JMenuItem itmExploracion = new JMenuItem("Exploracion");
-        JMenuItem itmRutaFinal = new JMenuItem("Ruta final");
+            JOptionPane.showMessageDialog(this, "Mapa cargado correctamente.");
+        });
 
-        itmExploracion.addActionListener(e -> {
-            mapa.setModoVisualizacion(TipoVisualizacion.EXPLORATION);
-            mapa.limpiarVisualizacion();
-            JOptionPane.showMessageDialog(this, "Modo exploración seleccionado. Ejecutar BFS/DFS desde los botones", "Modo Visualizacion", JOptionPane.INFORMATION_MESSAGE);
-        });
-        itmRutaFinal.addActionListener(e -> {
-            mapa.setModoVisualizacion(TipoVisualizacion.FINAL_PATH);
-            mapa.limpiarVisualizacion();
-            JOptionPane.showMessageDialog(this, "Modo rutaFinal seleccionada. Ejecutar BFS/DFS desde los botones", "Modo Visualizacion", JOptionPane.INFORMATION_MESSAGE);
-        });
-        menuModoVisualizacion.add(itmExploracion);
-        menuModoVisualizacion.add(itmRutaFinal);
-        barra.add(menuModoVisualizacion);
+        archivo.add(guardar);
+        archivo.add(cargar);
+        barra.add(archivo);
         setJMenuBar(barra);
-            archivo.add(guardar);
-            archivo.add(cargar);
-            JMenu ayuda = new JMenu("Ayuda");
-            JMenuItem acerca = new JMenuItem("Acerca de");
-            acerca.addActionListener(e -> {
-                JOptionPane.showMessageDialog(this, "Proyecto");
-            });
-            ayuda.add(acerca);
-            barra.add(archivo);
-            barra.add(ayuda);
-            setJMenuBar(barra);
     }
+
     private void actualizarMapa() {
         mapa.setGrafo(grafoResultado);
         mapa.repaint();
     }
-    private void estilizarBoton(JButton boton){
-        boton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        boton.setForeground(Color.WHITE);
-        boton.setForeground(new Color(52, 73, 94));
-        boton.setFocusPainted(false);            
-        boton.setBorderPainted(false);
+
+    private void agregarCategoria(JPanel panel, String titulo) {
+        JLabel lbl = new JLabel(titulo);
+        lbl.setFont(FUENTE_SECCION);
+        lbl.setForeground(COLOR_TITULO_SECCION);
+        lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(lbl);
+        panel.add(Box.createVerticalStrut(10));
     }
-    private void agregarCategoria(JPanel panel, String titulo){
 
-    JLabel lbl = new JLabel(titulo);
-    lbl.setFont(FUENTE_SECCION);
-    lbl.setForeground(new Color(149,165,166));
-    lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-
-    panel.add(lbl);
-
-
-    panel.add(Box.createVerticalStrut(10));
-
-}
-
-    private JButton crearBotonMenu(String texto) {
+    private JButton crearBotonMenu(String texto, Color colorTexto) {
         JButton boton = new JButton(texto);
         boton.setFont(FUENTE_BOTON);
-        boton.setForeground(COLOR_TEXTO);
+        boton.setForeground(colorTexto);
         boton.setBackground(COLOR_BOTON);
         boton.setFocusPainted(false);
         boton.setBorderPainted(false);
         boton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        boton.setMaximumSize(new Dimension(200, 40));
+        boton.setMaximumSize(new Dimension(200, 36));
+        boton.setPreferredSize(new Dimension(200, 36));
         boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Efecto Hover
         boton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -379,18 +258,5 @@ public class MainFrame extends JFrame {
         });
 
         return boton;
-    }
-
-    private MapPoint obtenerNodo(String id){
-        for(Node<MapPoint> nodo : grafoResultado.getNodes()){
-            if(nodo.getValue().getId().equalsIgnoreCase(id)){
-                return nodo.getValue();
-            }
-        }
-        return null;
-    }
-
-    private void mostrarMensaje(Component padre, String mensaje) {
-        JOptionPane.showMessageDialog(padre, mensaje, "Modo Edicion", JOptionPane.INFORMATION_MESSAGE);
     }
 }

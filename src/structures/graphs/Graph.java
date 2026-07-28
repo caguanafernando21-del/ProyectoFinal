@@ -10,7 +10,7 @@ import structures.graphs.implementations.Temperatura;
 
 public class Graph<T> {
     // Mapa: Clave = Nodo, Valor = Conjunto de Nodos vecinos a los que puede ir
-        private Map<Node<T>, Set<Node<T>>> graph;
+    private Map<Node<T>, Set<Node<T>>> graph;
 
 
     public Graph(){
@@ -20,29 +20,37 @@ public class Graph<T> {
     // Añade un nodo al grafo sin conexiones (aislado)
     public void add(T data){
         Node<T> node = new Node<T>(data);
+        // Usamos LinkedHashSet para garantizar que los algoritmos respeten el orden de conexión
         graph.putIfAbsent(node, new LinkedHashSet<Node<T>>());
     }
 
     // Crea una conexión Bidireccional (Grafo no Dirigido)
     public void addConection(T v1, T v2){
-        Node<T> nv1 = new Node<T>(v1);
-        Node<T> nv2 = new Node<T>(v2);
-
         add(v1); // Asegura que v1 exista
         add(v2); // Asegura que v2 exista
 
-        graph.get(nv1).add(nv2); // v1 conoce a v2 
-        graph.get(nv2).add(nv1); // v2 conoce a v1
+        // SOLUCIÓN: Buscar la instancia REAL del nodo en el grafo, no crear uno nuevo
+        Node<T> n1 = getNode(v1);
+        Node<T> n2 = getNode(v2);
+
+        if (n1 != null && n2 != null) {
+            graph.get(n1).add(n2); // v1 conoce a v2 
+            graph.get(n2).add(n1); // v2 conoce a v1
+        }
     }
 
     // Crea una conexión UNIDIRECCIONAL (Grafo Dirigido: v1 apunta a v2, pero no al revés)
     public void addConectionUni(T v1, T v2){
-        Node<T> nv1 = new Node<T>(v1);
-        Node<T> nv2 = new Node<T>(v2);
+        add(v1); // Asegura que v1 exista con su LinkedHashSet
+        add(v2); // Asegura que v2 exista
 
-        this.graph.putIfAbsent(nv1, new HashSet<>());
-        this.graph.putIfAbsent(nv2, new HashSet<>());
-        this.graph.get(nv1).add(nv2); // Solo v1 conoce a v2
+        // SOLUCIÓN: Buscar la instancia REAL del nodo en el grafo
+        Node<T> n1 = getNode(v1);
+        Node<T> n2 = getNode(v2);
+
+        if (n1 != null && n2 != null) {
+            graph.get(n1).add(n2); // Solo v1 conoce a v2
+        }
     }
     
     // Imprime el grafo mostrando cada nodo y quiénes son sus vecinos
@@ -58,41 +66,45 @@ public class Graph<T> {
     
     // Devuelve los vecinos de un nodo específico (o un conjunto vacío si no tiene/no existe)
     public Set<Node<T>> getVecinos(T current) {
-        for(Node<T> nodo : graph.keySet()){
-            if(nodo.getValue().equals(current)){
-                return graph.get(nodo);
-            }
+        Node<T> node = getNode(current);
+        if (node != null) {
+            return graph.get(node);
         }
-        return new HashSet<>();
+        return new LinkedHashSet<>();
     }
 
     public Set<Node<T>> getNodes() {
         return graph.keySet();
     }
+    
     public Map<Node<T>, Set<Node<T>>> getGraph(){
         return graph;
     }
 
     public void removeConnection(T value1, T value2){
-        Node<T> nodo1 = new Node<>(value1);
-        Node<T> nodo2 = new Node<>(value2);
-        if(graph.containsKey(nodo1)){
-            graph.get(nodo1).remove(nodo2);
-        }
-        if(graph.containsKey(nodo2)){
-            graph.get(nodo2).remove(nodo1);
+        // SOLUCIÓN: Buscar las instancias reales antes de intentar remover
+        Node<T> n1 = getNode(value1);
+        Node<T> n2 = getNode(value2);
+        
+        if(n1 != null && n2 != null){
+            graph.get(n1).remove(n2);
+            graph.get(n2).remove(n1);
         }
     }
+    
     public void remove(T data){
-        Node<T> nodoEliminar = new Node<>(data);
-        graph.remove(nodoEliminar);
-        for(Set<Node<T>> vecinos : graph.values()){
-            vecinos.remove(nodoEliminar);
+        // SOLUCIÓN: Buscar la instancia real para poder limpiar las referencias correctamente
+        Node<T> nodoEliminar = getNode(data);
+        if (nodoEliminar != null) {
+            graph.remove(nodoEliminar);
+            for(Set<Node<T>> vecinos : graph.values()){
+                vecinos.remove(nodoEliminar);
+            }
         }
-
     }
+    
     public boolean contains(T data){
-        return graph.containsKey(new Node<T>(data));
+        return getNode(data) != null;
     }
 
     // Método auxiliar: Busca y retorna el objeto Node<T> en el grafo usando su valor (T)
