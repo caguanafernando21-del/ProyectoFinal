@@ -125,7 +125,7 @@ public class Graph<T> {
         }
     }
 
-    // Obtiene la temperatura del punto/nodo especificado
+    // Obtiene la temperatura del punto/nodo especificado.
     public Temperatura getTemperatura(T data) {
         Node<T> node = getNode(data);
         if (node != null) {

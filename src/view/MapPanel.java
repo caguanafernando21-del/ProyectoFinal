@@ -6,6 +6,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -29,9 +30,13 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
     private List<MapPoint> pathADibujar = new ArrayList<>();
     private Queue<MapPoint> colaExploracion = new LinkedList<>();
     private Timer timerExploration;
+    private Timer timerPath;
 
-    // Variables de control visual
-    private final int RADIO_NODO = 7;
+    // Control estricto para aristas unidireccionales
+    private Set<String> aristasUnidireccionales = new HashSet<>();
+
+    // Variables de control visual (Nodos más pequeños)
+    private final int RADIO_NODO = 5;
     private boolean mostrarTemperaturas = false;
 
     // Variables temporales para selección y conexión
@@ -47,8 +52,9 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
     // Callback para comunicar las búsquedas con MainFrame
     private SearchCallback searchCallback;
 
-    // Botón flotante interno para limpiar búsqueda
+    // Botones flotantes internos (Limpiar y Tarjeta de info)
     private Rectangle botonLimpiarBounds = new Rectangle(0, 0, 0, 0);
+    private Rectangle tarjetaInfoBounds = new Rectangle(0, 0, 0, 0);
 
     public interface SearchCallback {
         void onSearch(String tipo, MapPoint inicio, MapPoint fin);
@@ -56,8 +62,8 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
     public MapPanel(Graph<MapPoint> grafo) {
         this.grafo = grafo;
-        setBackground(Color.DARK_GRAY);
-        setLayout(null); // Permite posicionar componentes libres si es necesario, o usar eventos de clic
+        setBackground(new Color(30, 39, 46));
+        setLayout(null);
 
         // Cargar la imagen del mapa
         java.net.URL ruta = getClass().getResource("/mapas.png");
@@ -67,7 +73,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
             System.out.println("No se encontró mapas.png en /resources");
         }
 
-        // LISTENER UNIFICADO: Maneja clics de edición, búsqueda por clics, botón limpiar y selección normal
+        // LISTENER UNIFICADO DE RATÓN
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -91,19 +97,13 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                                     try {
                                         if (idStr.startsWith("N")) {
                                             int numero = Integer.parseInt(idStr.substring(1));
-                                            if (numero > maxId) {
-                                                maxId = numero;
-                                            }
+                                            if (numero > maxId) maxId = numero;
                                         }
-                                    } catch (NumberFormatException ex) {
-                                        // Ignorar formatos personalizados
-                                    }
+                                    } catch (NumberFormatException ignored) {}
                                 }
                             }
-                            
                             String idNuevo = "N" + (maxId + 1);
-                            MapPoint nuevoPunto = new MapPoint(idNuevo, mouseX, mouseY);
-                            grafo.add(nuevoPunto); 
+                            grafo.add(new MapPoint(idNuevo, mouseX, mouseY)); 
                             repaint();
                             break;
 
@@ -120,11 +120,26 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                             if (nodoClick1 != null) {
                                 if (nodoSeleccionadoConexion == null) {
                                     nodoSeleccionadoConexion = nodoClick1.getValue();
-                                    JOptionPane.showMessageDialog(MapPanel.this, "Nodo " + nodoSeleccionadoConexion.getId() + " seleccionado. Haz clic en el segundo nodo.");
+                                    repaint();
                                 } else {
-                                    grafo.addConection(nodoSeleccionadoConexion, nodoClick1.getValue());
+                                    MapPoint origen = nodoSeleccionadoConexion;
+                                    MapPoint destino = nodoClick1.getValue();
+                                    
+                                    if (!origen.equals(destino)) {
+                                        int eleccion = mostrarDialogoElegante(origen, destino);
+
+                                        if (eleccion == 0) { // Unidireccional
+                                            grafo.addConection(origen, destino);
+                                            aristasUnidireccionales.add(origen.getId() + "->" + destino.getId());
+                                        } else if (eleccion == 1) { // Bidireccional
+                                            grafo.addConection(origen, destino);
+                                            grafo.addConection(destino, origen); 
+                                            aristasUnidireccionales.remove(origen.getId() + "->" + destino.getId());
+                                            aristasUnidireccionales.remove(destino.getId() + "->" + origen.getId());
+                                        }
+                                    }
+                                    
                                     nodoSeleccionadoConexion = null;
-                                    JOptionPane.showMessageDialog(MapPanel.this, "Conexión creada con éxito.");
                                     repaint();
                                 }
                             }
@@ -135,11 +150,14 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                             if (nodoClick2 != null) {
                                 if (nodoSeleccionadoConexion == null) {
                                     nodoSeleccionadoConexion = nodoClick2.getValue();
-                                    JOptionPane.showMessageDialog(MapPanel.this, "Nodo " + nodoSeleccionadoConexion.getId() + " seleccionado. Haz clic en el nodo con el que pierde conexión.");
+                                    repaint();
                                 } else {
-                                    grafo.removeConnection(nodoSeleccionadoConexion, nodoClick2.getValue());
+                                    MapPoint origen = nodoSeleccionadoConexion;
+                                    MapPoint destino = nodoClick2.getValue();
+                                    grafo.removeConnection(origen, destino);
+                                    aristasUnidireccionales.remove(origen.getId() + "->" + destino.getId());
+                                    aristasUnidireccionales.remove(destino.getId() + "->" + origen.getId());
                                     nodoSeleccionadoConexion = null;
-                                    JOptionPane.showMessageDialog(MapPanel.this, "Conexión eliminada.");
                                     repaint();
                                 }
                             }
@@ -148,18 +166,15 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                     return; 
                 }
 
-                // 2. SI ESTAMOS SELECCIONANDO NODOS PARA UNA BÚSQUEDA (ej. DFS/BFS)
+                // 2. SI ESTAMOS SELECCIONANDO NODOS PARA UNA BÚSQUEDA
                 if (modoSeleccionBusqueda) {
                     Node<MapPoint> nodoCercano = buscarNodoCercano(mouseX, mouseY);
                     if (nodoCercano != null) {
                         if (nodoInicioBusqueda == null) {
                             nodoInicioBusqueda = nodoCercano.getValue();
-                            JOptionPane.showMessageDialog(MapPanel.this, "Inicio seleccionado: " + nodoInicioBusqueda.getId() + "\nHaz clic en el nodo de destino.");
                             repaint();
                         } else if (nodoFinBusqueda == null) {
                             nodoFinBusqueda = nodoCercano.getValue();
-                            JOptionPane.showMessageDialog(MapPanel.this, "Destino seleccionado: " + nodoFinBusqueda.getId());
-                            
                             ejecutarBusquedaSeleccionada();
                             modoSeleccionBusqueda = false;
                             repaint();
@@ -168,23 +183,23 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                     return;
                 }
                         
-                // 3. MODO NORMAL: Seleccionar nodo individual
+                // 3. MODO NORMAL: Seleccionar nodo y mostrar tarjeta flotante
                 Node<MapPoint> nodoCercano = buscarNodoCercano(mouseX, mouseY);
                 if (nodoCercano != null) {
                     nodoSeleccionado = nodoCercano.getValue();
-                    repaint();
                 } else {
-                    nodoSeleccionado = null;
-                    repaint();
+                    if (!tarjetaInfoBounds.contains(mouseX, mouseY)) {
+                        nodoSeleccionado = null;
+                    }
                 }
+                repaint();
             }
         });
 
-        // LISTENER: Cambiar cursor a "Mano" cuando el ratón pase sobre un nodo o sobre el botón de limpiar
         addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
-                if (botonLimpiarBounds.contains(e.getX(), e.getY())) {
+                if (botonLimpiarBounds.contains(e.getX(), e.getY()) || tarjetaInfoBounds.contains(e.getX(), e.getY())) {
                     setCursor(new Cursor(Cursor.HAND_CURSOR));
                     return;
                 }
@@ -207,6 +222,77 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         });
     }
 
+    private int mostrarDialogoElegante(MapPoint origen, MapPoint destino) {
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Tipo de Conexión", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true); 
+        dialog.getRootPane().setBorder(BorderFactory.createLineBorder(new Color(44, 62, 80), 2));
+        
+        JPanel panelPrincipal = new JPanel(new BorderLayout(0, 15));
+        panelPrincipal.setBackground(Color.WHITE);
+        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
+
+        JLabel titulo = new JLabel("Configurar Conexión");
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titulo.setForeground(new Color(44, 62, 80));
+        titulo.setHorizontalAlignment(SwingConstants.CENTER);
+        panelPrincipal.add(titulo, BorderLayout.NORTH);
+
+        JLabel mensaje = new JLabel("¿Qué tipo de ruta deseas crear entre " + origen.getId() + " y " + destino.getId() + "?");
+        mensaje.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        mensaje.setForeground(new Color(52, 73, 94));
+        mensaje.setHorizontalAlignment(SwingConstants.CENTER);
+        panelPrincipal.add(mensaje, BorderLayout.CENTER);
+
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        panelBotones.setBackground(Color.WHITE);
+
+        JButton btnUni = crearBotonElegante("Unidireccional", new Color(52, 152, 219));
+        JButton btnBi = crearBotonElegante("Bidireccional", new Color(46, 204, 113));
+        JButton btnCancelar = crearBotonElegante("Cancelar", new Color(231, 76, 60));
+
+        final int[] eleccion = {-1};
+
+        btnUni.addActionListener(e -> { eleccion[0] = 0; dialog.dispose(); });
+        btnBi.addActionListener(e -> { eleccion[0] = 1; dialog.dispose(); });
+        btnCancelar.addActionListener(e -> { eleccion[0] = -1; dialog.dispose(); });
+
+        panelBotones.add(btnUni);
+        panelBotones.add(btnBi);
+        panelBotones.add(btnCancelar);
+
+        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
+        dialog.add(panelPrincipal);
+        
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+
+        return eleccion[0];
+    }
+
+    private JButton crearBotonElegante(String texto, Color color) {
+        JButton btn = new JButton(texto);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(color);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent evt) {
+                btn.setBackground(color.darker());
+            }
+            @Override
+            public void mouseExited(MouseEvent evt) {
+                btn.setBackground(color);
+            }
+        });
+        return btn;
+    }
+
     public void setSearchCallback(SearchCallback callback) {
         this.searchCallback = callback;
     }
@@ -217,7 +303,6 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         this.nodoInicioBusqueda = null;
         this.nodoFinBusqueda = null;
         this.modoActual = null;
-        JOptionPane.showMessageDialog(this, "Modo " + tipoBusqueda + ": Haz clic en el nodo de INICIO en el mapa.");
         repaint();
     }
 
@@ -259,6 +344,10 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
             timerExploration.stop();
             timerExploration = null;
         }
+        if (timerPath != null) {
+            timerPath.stop();
+            timerPath = null;
+        }
         visitadosADibujar.clear();
         pathADibujar.clear();
         colaExploracion.clear();
@@ -280,6 +369,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         Graphics2D g2 = (Graphics2D) graficos;
         
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         if (imagenMapa != null) {
             g2.drawImage(imagenMapa, 0, 0, getWidth(), getHeight(), this);
@@ -287,71 +377,87 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
         if (grafo == null) return;
 
-        // DIBUJAR CONEXIONES RESPETANDO DIRECCIONALIDAD Y FLECHAS
+        // DIBUJAR CONEXIONES (ARISTAS)
+        Set<String> aristasDibujadas = new HashSet<>();
+
         for (Node<MapPoint> nodoOrigenNode : grafo.getNodes()) {
             MapPoint origen = nodoOrigenNode.getValue();
-            
             Set<Node<MapPoint>> vecinosSalientes = grafo.getVecinos(origen);
             if (vecinosSalientes == null) continue;
 
             for (Node<MapPoint> nodoDestinoNode : vecinosSalientes) {
                 MapPoint destino = nodoDestinoNode.getValue();
                 
-                boolean inversoExiste = false;
-                
-                Set<Node<MapPoint>> vecinosDelDestino = grafo.getVecinos(destino);
-                if (vecinosDelDestino != null) {
-                    for (Node<MapPoint> vecinoDelDestino : vecinosDelDestino) {
-                        if (vecinoDelDestino.getValue().equals(origen)) {
-                            inversoExiste = true;
-                            break;
-                        }
-                    }
-                }
+                String idArista = origen.getId().compareTo(destino.getId()) < 0 ? 
+                                  origen.getId() + "-" + destino.getId() : 
+                                  destino.getId() + "-" + origen.getId();
 
-                dibujarFlechaConOffset(g2, origen.getX(), origen.getY(), destino.getX(), destino.getY(), inversoExiste);
+                if (aristasDibujadas.contains(idArista)) {
+                    continue; 
+                }
+                aristasDibujadas.add(idArista);
+                
+                dibujarAristaUnica(g2, origen, destino);
             }
         }
 
-        // Dibujar nodos
+        // DIBUJAR NODOS
         for (Node<MapPoint> nodo : grafo.getNodes()) {
             MapPoint punto = nodo.getValue();
             int x = punto.getX();
             int y = punto.getY();
 
             if (nodoInicioBusqueda != null && nodoInicioBusqueda.equals(punto)) {
-                g2.setColor(new Color(40, 180, 70));
-                g2.fillOval(x - (RADIO_NODO + 4), y - (RADIO_NODO + 4), (RADIO_NODO + 4) * 2, (RADIO_NODO + 4) * 2);
+                g2.setColor(new Color(46, 204, 113));
+                g2.fillOval(x - (RADIO_NODO + 5), y - (RADIO_NODO + 5), (RADIO_NODO + 5) * 2, (RADIO_NODO + 5) * 2);
             } else if (nodoFinBusqueda != null && nodoFinBusqueda.equals(punto)) {
-                g2.setColor(new Color(255, 193, 7));
-                g2.fillOval(x - (RADIO_NODO + 4), y - (RADIO_NODO + 4), (RADIO_NODO + 4) * 2, (RADIO_NODO + 4) * 2);
+                g2.setColor(new Color(241, 196, 15));
+                g2.fillOval(x - (RADIO_NODO + 5), y - (RADIO_NODO + 5), (RADIO_NODO + 5) * 2, (RADIO_NODO + 5) * 2);
             } else if (nodoSeleccionado != null && nodoSeleccionado.equals(punto)) {
-                g2.setColor(new Color(255, 193, 7));
-                g2.fillOval(x - (RADIO_NODO + 3), y - (RADIO_NODO + 3), (RADIO_NODO + 3) * 2, (RADIO_NODO + 3) * 2);
+                g2.setColor(new Color(52, 152, 219));
+                g2.fillOval(x - (RADIO_NODO + 5), y - (RADIO_NODO + 5), (RADIO_NODO + 5) * 2, (RADIO_NODO + 5) * 2);
             }
 
-            g2.setColor(new Color(220, 53, 69));
+            g2.setColor(new Color(231, 76, 60));
             g2.fillOval(x - RADIO_NODO, y - RADIO_NODO, RADIO_NODO * 2, RADIO_NODO * 2);
 
-            g2.setColor(new Color(120, 20, 20));
-            g2.setStroke(new BasicStroke(1.2f));
+            g2.setColor(new Color(192, 57, 43));
+            g2.setStroke(new BasicStroke(1.5f));
             g2.drawOval(x - RADIO_NODO, y - RADIO_NODO, RADIO_NODO * 2, RADIO_NODO * 2);
 
             if (mostrarTemperaturas && nodo.getTemperatura() != null) {
-                g2.setColor(new Color(240, 200, 0));
-                g2.setFont(new Font("Arial", Font.BOLD, 11));
-                g2.drawString(nodo.getTemperatura().toString(), x + 9, y + 12);
+                String tempText = nodo.getTemperatura().toString() + "°C";
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+                
+                FontMetrics fmTemp = g2.getFontMetrics();
+                int tWidth = fmTemp.stringWidth(tempText) + 8;
+                int tHeight = 16;
+                
+                int tX = x + 12;
+                int tY = y - 10;
+
+                g2.setColor(new Color(255, 255, 255, 240));
+                g2.fillRoundRect(tX, tY, tWidth, tHeight, 6, 6);
+                
+                g2.setColor(new Color(189, 195, 199));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(tX, tY, tWidth, tHeight, 6, 6);
+
+                g2.setColor(new Color(44, 62, 80));
+                g2.drawString(tempText, tX + 4, tY + 12);
             }
         }
 
+        // DIBUJAR VISITADOS EN ANIMACIÓN
         for (MapPoint punto : visitadosADibujar) {
-            g2.setColor(Color.ORANGE);
+            g2.setColor(new Color(230, 126, 34));
             g2.fillOval(punto.getX() - 6, punto.getY() - 6, 12, 12);
         }
 
+        // DIBUJAR CAMINO ENCONTRADO
         if (pathADibujar.size() > 1) {
-            g2.setColor(new Color(40, 180, 70));
-            g2.setStroke(new BasicStroke(4.5f));
+            g2.setColor(new Color(46, 204, 113));
+            g2.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             for (int i = 0; i < pathADibujar.size() - 1; i++) {
                 MapPoint actual = pathADibujar.get(i);
                 MapPoint siguiente = pathADibujar.get(i + 1);
@@ -360,7 +466,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         }
 
         for (MapPoint punto : pathADibujar) {
-            g2.setColor(new Color(40, 180, 70));
+            g2.setColor(new Color(46, 204, 113));
             g2.fillOval(punto.getX() - 6, punto.getY() - 6, 12, 12);
         }
 
@@ -371,52 +477,81 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
             int[] xPoints = {px - 7, px + 7, px};
             int[] yPoints = {py - 12, py - 12, py};
-            g2.setColor(new Color(215, 40, 40));
+            g2.setColor(new Color(231, 76, 60));
             g2.fillPolygon(xPoints, yPoints, 3);
             g2.fillOval(px - 9, py - 24, 18, 18);
-
-            g2.setColor(new Color(120, 10, 10));
-            g2.drawOval(px - 9, py - 24, 18, 18);
-
             g2.setColor(Color.WHITE);
             g2.fillOval(px - 3, py - 18, 6, 6);
         }
 
-        // DIBUJAR BOTÓN FLOTANTE "LIMPIAR BÚSQUEDA" EN LA ESQUINA SUPERIOR DERECHA
+        if (nodoSeleccionado != null) {
+            int cardW = 220;
+            int cardH = 95;
+            int cardX = 20;
+            int cardY = getHeight() - cardH - 20;
+
+            tarjetaInfoBounds.setBounds(cardX, cardY, cardW, cardH);
+
+            g2.setColor(new Color(0, 0, 0, 60));
+            g2.fillRoundRect(cardX + 3, cardY + 3, cardW, cardH, 12, 12);
+
+            g2.setColor(new Color(255, 255, 255, 245));
+            g2.fillRoundRect(cardX, cardY, cardW, cardH, 12, 12);
+
+            g2.setColor(new Color(189, 195, 199));
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(cardX, cardY, cardW, cardH, 12, 12);
+
+            g2.setColor(new Color(44, 62, 80));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            g2.drawString("Información del Nodo", cardX + 15, cardY + 22);
+
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            g2.drawString("ID: " + nodoSeleccionado.getId(), cardX + 15, cardY + 42);
+            g2.drawString("Coordenadas: (" + nodoSeleccionado.getX() + ", " + nodoSeleccionado.getY() + ")", cardX + 15, cardY + 60);
+            
+            String tempStr = "N/A";
+            for (Node<MapPoint> n : grafo.getNodes()) {
+                if (n.getValue().equals(nodoSeleccionado)) {
+                    if (n.getTemperatura() != null) {
+                        tempStr = n.getTemperatura().toString();
+                    }
+                    break;
+                }
+            }
+            g2.drawString("Temperatura: " + tempStr, cardX + 15, cardY + 78);
+        } else {
+            tarjetaInfoBounds.setBounds(0, 0, 0, 0);
+        }
+
         if (!pathADibujar.isEmpty() || !visitadosADibujar.isEmpty() || nodoInicioBusqueda != null) {
             String textoBoton = "Limpiar Búsqueda";
-            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
             FontMetrics fm = g2.getFontMetrics();
-            int anchoTexto = fm.stringWidth(textoBoton);
-            
-            int btnW = anchoTexto + 20;
-            int btnH = 28;
+            int btnW = fm.stringWidth(textoBoton) + 24;
+            int btnH = 32;
             int btnX = getWidth() - btnW - 20;
             int btnY = 20;
 
-            // Actualizar límites para detectar clics
             botonLimpiarBounds.setBounds(btnX, btnY, btnW, btnH);
 
-            // Fondo del botón (rojo elegante o gris oscuro)
-            g2.setColor(new Color(220, 53, 69));
+            g2.setColor(new Color(231, 76, 60));
             g2.fillRoundRect(btnX, btnY, btnW, btnH, 8, 8);
-
-            // Borde del botón
-            g2.setColor(new Color(160, 30, 40));
-            g2.drawRoundRect(btnX, btnY, btnW, btnH, 8, 8);
-
-            // Texto del botón
             g2.setColor(Color.WHITE);
-            g2.drawString(textoBoton, btnX + 10, btnY + 19);
+            g2.drawString(textoBoton, btnX + 12, btnY + 21);
         } else {
-            // Si no hay búsqueda activa, resetear las bounds para que no interfiera
             botonLimpiarBounds.setBounds(0, 0, 0, 0);
         }
     }
 
-    private void dibujarFlechaConOffset(Graphics2D g2, int x1, int y1, int x2, int y2, boolean conOffset) {
-        g2.setColor(new Color(30, 115, 190)); 
-        g2.setStroke(new BasicStroke(2.0f)); 
+    private void dibujarAristaUnica(Graphics2D g2, MapPoint origen, MapPoint destino) {
+        g2.setColor(new Color(52, 152, 219, 200)); 
+        g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)); 
+
+        int x1 = origen.getX();
+        int y1 = origen.getY();
+        int x2 = destino.getX();
+        int y2 = destino.getY();
 
         double dx = x2 - x1;
         double dy = y2 - y1;
@@ -426,26 +561,36 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         double ux = dx / distancia;
         double uy = dy / distancia;
 
-        double nx = -uy;
-        double ny = ux;
-        double offset = conOffset ? 5.5 : 0.0;
+        int startX = (int) (x1 + ux * (RADIO_NODO + 2));
+        int startY = (int) (y1 + uy * (RADIO_NODO + 2));
+        int endX = (int) (x2 - ux * (RADIO_NODO + 2));
+        int endY = (int) (y2 - uy * (RADIO_NODO + 2));
 
-        double startX = x1 + nx * offset;
-        double startY = y1 + ny * offset;
-        double endX = x2 + nx * offset;
-        double endY = y2 + ny * offset;
+        // Dibuja la línea base entre ambos nodos
+        g2.drawLine(startX, startY, endX, endY);
 
-        double xA = startX + ux * (RADIO_NODO + 1);
-        double yA = startY + uy * (RADIO_NODO + 1);
-        double xB = endX - ux * (RADIO_NODO + 3);
-        double yB = endY - uy * (RADIO_NODO + 3);
+        // Verificación basada estrictamente en el set de control unIDireccional
+        boolean uni1 = aristasUnidireccionales.contains(origen.getId() + "->" + destino.getId());
+        boolean uni2 = aristasUnidireccionales.contains(destino.getId() + "->" + origen.getId());
 
-        g2.drawLine((int) xA, (int) yA, (int) xB, (int) yB);
+        if (uni1) {
+            // Solo flecha hacia adelante (origen -> destino)
+            dibujarPuntaFlecha(g2, endX, endY, dx, dy);
+        } else if (uni2) {
+            // Solo flecha hacia atrás (destino -> origen)
+            dibujarPuntaFlecha(g2, startX, startY, -dx, -dy);
+        } else {
+            // Bidireccional por defecto
+            dibujarPuntaFlecha(g2, endX, endY, dx, dy);
+            dibujarPuntaFlecha(g2, startX, startY, -dx, -dy);
+        }
+    }
 
+    private void dibujarPuntaFlecha(Graphics2D g2, int x, int y, double dx, double dy) {
         double angulo = Math.atan2(dy, dx);
-        int tamFlecha = 8;
+        int tamFlecha = 10; 
         AffineTransform tx = g2.getTransform();
-        g2.translate(xB, yB);
+        g2.translate(x, y);
         g2.rotate(angulo);
         
         Polygon cabezaFlecha = new Polygon();
@@ -453,7 +598,6 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         cabezaFlecha.addPoint(-tamFlecha, -tamFlecha / 2);
         cabezaFlecha.addPoint(-tamFlecha, tamFlecha / 2);
         g2.fill(cabezaFlecha);
-        
         g2.setTransform(tx);
     }
 
@@ -463,8 +607,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         if (timerExploration == null) {
             timerExploration = new Timer(250, e -> {
                 if (!colaExploracion.isEmpty()) {
-                    MapPoint puntoSiguiente = colaExploracion.poll();
-                    visitadosADibujar.add(puntoSiguiente);
+                    visitadosADibujar.add(colaExploracion.poll());
                     repaint();
                 } else {
                     timerExploration.stop();
@@ -477,18 +620,22 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
     public void mostrarRuta(List<MapPoint> rutaExploracion) {
         pathADibujar.clear();
-        Timer timer = new Timer(250, null);
+        if (timerPath != null && timerPath.isRunning()) {
+            timerPath.stop();
+        }
+        timerPath = new Timer(250, null);
         final int[] indice = {0};
-        timer.addActionListener(e -> {
+        timerPath.addActionListener(e -> {
             if (indice[0] < rutaExploracion.size()) {
                 pathADibujar.add(rutaExploracion.get(indice[0]));
                 indice[0]++;
                 repaint();
             } else {
-                timer.stop();
+                timerPath.stop();
+                timerPath = null;
             }
         });
-        timer.start();
+        timerPath.start();
     }
 
     public boolean exploracionTerminada() {
@@ -499,13 +646,4 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         this.grafo = grafo;
         repaint();
     }
-
-    private boolean perteneceARuta(MapPoint punto) {
-    for (MapPoint p : pathADibujar) {
-        if (p.equals(punto)) {
-            return true;
-        }
-    }
-    return false;
-}
 }
