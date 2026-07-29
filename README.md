@@ -112,8 +112,9 @@ Se lo puede marcar como una serie de pasos:
 
 *Recorrido DFS*
 
-![alt text](image-2.png)
-*Nota.* Adaptado de *"Graph traversal - DFS & BFS"*,por Benson Chen, s.f. https://www.simplilearn.com/tutorials/data-structure-tutorial/bfs-algorithm
+![alt text](<WhatsApp Image 2026-07-28 at 11.09.01 PM.jpeg>)
+
+Nota. De What is DFS (Depth First Search) Algorithm? [Explicado con Ejemplos], por upGrad, 2023, upGrad Blog (https://www.upgrad.com/blog/what-is-dfs-algorithm/). En el dominio público [o Reimpreso con permiso].
 
 ### 3.2.3. Complejidad computacional
 A través de la complejidad se permite medir el rendimiento de un algoritmo mediante la cantidad de recursos que este requiere en función del tamaño de entrada de datos. Dentro del caso de grafos específicamente, se evalúa considerando la cantidad tanto de aristas y vértices que este posee.
@@ -152,7 +153,7 @@ A través de la complejidad se permite medir el rendimiento de un algoritmo medi
 
 *Diagrama de clases de nuestro proyecto*
 
-![alt text](<UML ProyectoFinal ED.drawio.png>)
+![alt text](<WhatsApp Image 2026-07-28 at 11.03.02 PM.jpeg>)
 
 *Nota.* Elaboración propia
 
@@ -184,11 +185,11 @@ Una vez cargado, cada ubicacion del mapa se representa visualmente con un MapPoi
 ## 8. Capturas de configuraciones 
 Ejemplo configuracion incorrecta
 
-![alt text](image.png)
+![alt text](<WhatsApp Image 2026-07-28 at 11.03.28 PM.jpeg>)
 
 Configuracion correcta 
 
-![alt text](<WhatsApp Image 2026-07-28 at 10.34.43 PM.jpeg>)
+![alt text](<WhatsApp Image 2026-07-28 at 11.03.45 PM.jpeg>)
 
 ## 9. Algoritmos
 
@@ -204,7 +205,7 @@ En este caso, el algoritmo realiza una búsqueda en profundidad siguiendo un cam
 
 *Tabla comparativa de resultados obtenidos*
 
-![alt text](<WhatsApp Image 2026-07-28 at 10.42.10 PM.jpeg>)
+![alt text](<WhatsApp Image 2026-07-28 at 11.04.08 PM.jpeg>)
 
 *Nota.* Elaboración propia. Los resultados son verificados en momento de ejecución en un computador específico
 
