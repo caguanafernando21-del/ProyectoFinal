@@ -3,6 +3,8 @@ package view;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -23,38 +25,37 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
     private Image imagenMapa;   
     private Graph<MapPoint> grafo; 
-    private TipoVisualizacion modoVisualizacion = TipoVisualizacion.EXPLORATION;
+    
+    private TipoVisualizacion modoVisualizacion = null; 
     private ModoEdicion modoActual;
     
     private List<MapPoint> visitadosADibujar = new ArrayList<>();
     private List<MapPoint> pathADibujar = new ArrayList<>();
     private Queue<MapPoint> colaExploracion = new LinkedList<>();
+
     private Timer timerExploration;
     private Timer timerPath;
 
-    // Control estricto para aristas unidireccionales
     private Set<String> aristasUnidireccionales = new HashSet<>();
 
-    // Variables de control visual (Nodos más pequeños)
     private final int RADIO_NODO = 5;
     private boolean mostrarTemperaturas = false;
 
-    // Variables temporales para selección y conexión
     private MapPoint nodoSeleccionadoConexion = null;
     private MapPoint nodoSeleccionado = null; 
 
-    // Variables para la selección de búsqueda por clics (Inicio y Destino)
     private boolean modoSeleccionBusqueda = false;
     private String tipoBusquedaActual = null;
     private MapPoint nodoInicioBusqueda = null;
     private MapPoint nodoFinBusqueda = null;
 
-    // Callback para comunicar las búsquedas con MainFrame
     private SearchCallback searchCallback;
 
-    // Botones flotantes internos (Limpiar y Tarjeta de info)
     private Rectangle botonLimpiarBounds = new Rectangle(0, 0, 0, 0);
     private Rectangle tarjetaInfoBounds = new Rectangle(0, 0, 0, 0);
+
+    private JScrollPane scrollRegistro;
+    private JTextArea textRegistroRuta;
 
     public interface SearchCallback {
         void onSearch(String tipo, MapPoint inicio, MapPoint fin);
@@ -65,28 +66,51 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         setBackground(new Color(30, 39, 46));
         setLayout(null);
 
-        // Cargar la imagen del mapa
+        textRegistroRuta = new JTextArea();
+        textRegistroRuta.setEditable(false);
+        textRegistroRuta.setLineWrap(true);
+        textRegistroRuta.setWrapStyleWord(true);
+        textRegistroRuta.setBackground(new Color(24, 32, 38, 245)); 
+        textRegistroRuta.setForeground(new Color(236, 240, 241));
+        textRegistroRuta.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        textRegistroRuta.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+        textRegistroRuta.setOpaque(true);
+
+        scrollRegistro = new JScrollPane(textRegistroRuta);
+        scrollRegistro.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(52, 152, 219, 150), 1, true),
+            BorderFactory.createEmptyBorder(2, 2, 2, 2)
+        ));
+        scrollRegistro.setOpaque(false);
+        scrollRegistro.getViewport().setOpaque(false);
+        scrollRegistro.setVisible(false);
+        add(scrollRegistro);
+
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int padding = 20;
+                int logHeight = 110;
+                scrollRegistro.setBounds(padding, getHeight() - logHeight - padding, getWidth() - (padding * 2), logHeight);
+            }
+        });
+
         java.net.URL ruta = getClass().getResource("/mapas.png");
         if (ruta != null) {
             imagenMapa = new ImageIcon(ruta).getImage();
-        } else {
-            System.out.println("No se encontró mapas.png en /resources");
         }
 
-        // LISTENER UNIFICADO DE RATÓN
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int mouseX = e.getX();
                 int mouseY = e.getY();
 
-                // 0. VERIFICAR SI HIZO CLIC EN EL BOTÓN FLOTANTE "LIMPIAR BÚSQUEDA"
                 if (botonLimpiarBounds.contains(mouseX, mouseY)) {
                     limpiarVisualizacion();
                     return;
                 }
 
-                // 1. SI ESTAMOS EN MODO EDICIÓN
                 if (modoActual != null && grafo != null) {
                     switch (modoActual) {
                         case AGREGAR_NODO:
@@ -128,17 +152,16 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                                     if (!origen.equals(destino)) {
                                         int eleccion = mostrarDialogoElegante(origen, destino);
 
-                                        if (eleccion == 0) { // Unidireccional
+                                        if (eleccion == 0) { 
                                             grafo.addConection(origen, destino);
                                             aristasUnidireccionales.add(origen.getId() + "->" + destino.getId());
-                                        } else if (eleccion == 1) { // Bidireccional
+                                        } else if (eleccion == 1) { 
                                             grafo.addConection(origen, destino);
                                             grafo.addConection(destino, origen); 
                                             aristasUnidireccionales.remove(origen.getId() + "->" + destino.getId());
                                             aristasUnidireccionales.remove(destino.getId() + "->" + origen.getId());
                                         }
                                     }
-                                    
                                     nodoSeleccionadoConexion = null;
                                     repaint();
                                 }
@@ -166,7 +189,6 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                     return; 
                 }
 
-                // 2. SI ESTAMOS SELECCIONANDO NODOS PARA UNA BÚSQUEDA
                 if (modoSeleccionBusqueda) {
                     Node<MapPoint> nodoCercano = buscarNodoCercano(mouseX, mouseY);
                     if (nodoCercano != null) {
@@ -183,7 +205,6 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                     return;
                 }
                         
-                // 3. MODO NORMAL: Seleccionar nodo y mostrar tarjeta flotante
                 Node<MapPoint> nodoCercano = buscarNodoCercano(mouseX, mouseY);
                 if (nodoCercano != null) {
                     nodoSeleccionado = nodoCercano.getValue();
@@ -220,6 +241,88 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                 }
             }
         });
+    }
+
+    // --- NUEVO DIÁLOGO MODERNO PARA NOTIFICACIONES DE MODO ---
+    public void mostrarNotificacionModo(String titulo, String mensaje) {
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Modo Cambiado", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        dialog.setBackground(new Color(0, 0, 0, 0)); 
+        
+        JPanel panelPrincipal = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(33, 43, 54)); // Fondo oscuro moderno
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(new Color(52, 152, 219, 200)); // Borde sutil azulado
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g2.dispose();
+            }
+        };
+        panelPrincipal.setLayout(new BorderLayout(15, 15));
+        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
+        panelPrincipal.setOpaque(false);
+
+        // Icono circular elegante
+        JLabel lblIcono = new JLabel("i");
+        lblIcono.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblIcono.setForeground(Color.WHITE);
+        lblIcono.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        JPanel iconContainer = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(52, 152, 219));
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        iconContainer.setPreferredSize(new Dimension(38, 38));
+        iconContainer.setOpaque(false);
+        iconContainer.setLayout(new BorderLayout());
+        iconContainer.add(lblIcono, BorderLayout.CENTER);
+
+        // Textos
+        JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
+        textPanel.setOpaque(false);
+
+        JLabel lblTitulo = new JLabel(titulo);
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblTitulo.setForeground(Color.WHITE);
+
+        JLabel lblMensaje = new JLabel("<html><body style='width: 270px;'>" + mensaje + "</body></html>");
+        lblMensaje.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblMensaje.setForeground(new Color(189, 195, 199));
+
+        textPanel.add(lblTitulo);
+        textPanel.add(lblMensaje);
+
+        JPanel topContent = new JPanel(new BorderLayout(16, 0));
+        topContent.setOpaque(false);
+        topContent.add(iconContainer, BorderLayout.WEST);
+        topContent.add(textPanel, BorderLayout.CENTER);
+
+        panelPrincipal.add(topContent, BorderLayout.CENTER);
+
+        // Botón Aceptar Moderno
+        JButton btnAceptar = crearBotonElegante("Aceptar", new Color(52, 152, 219));
+        btnAceptar.addActionListener(e -> dialog.dispose());
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        btnPanel.setOpaque(false);
+        btnPanel.add(btnAceptar);
+
+        panelPrincipal.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.add(panelPrincipal);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     private int mostrarDialogoElegante(MapPoint origen, MapPoint destino) {
@@ -278,7 +381,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
         
         btn.addMouseListener(new MouseAdapter() {
             @Override
@@ -308,6 +411,12 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
     private void ejecutarBusquedaSeleccionada() {
         if (nodoInicioBusqueda != null && nodoFinBusqueda != null && searchCallback != null) {
+            if (modoVisualizacion != null) {
+                scrollRegistro.setVisible(true);
+                actualizarTextoRegistro();
+            } else {
+                scrollRegistro.setVisible(false);
+            }
             searchCallback.onSearch(tipoBusquedaActual, nodoInicioBusqueda, nodoFinBusqueda);
         }
     }
@@ -355,6 +464,10 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         nodoInicioBusqueda = null;
         nodoFinBusqueda = null;
         modoSeleccionBusqueda = false;
+        
+        scrollRegistro.setVisible(false);
+        textRegistroRuta.setText("");
+        
         repaint();
     }
 
@@ -377,7 +490,6 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
 
         if (grafo == null) return;
 
-        // DIBUJAR CONEXIONES (ARISTAS)
         Set<String> aristasDibujadas = new HashSet<>();
 
         for (Node<MapPoint> nodoOrigenNode : grafo.getNodes()) {
@@ -401,7 +513,6 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
             }
         }
 
-        // DIBUJAR NODOS
         for (Node<MapPoint> nodo : grafo.getNodes()) {
             MapPoint punto = nodo.getValue();
             int x = punto.getX();
@@ -448,40 +559,42 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
             }
         }
 
-        // DIBUJAR VISITADOS EN ANIMACIÓN
-        for (MapPoint punto : visitadosADibujar) {
-            g2.setColor(new Color(230, 126, 34));
-            g2.fillOval(punto.getX() - 6, punto.getY() - 6, 12, 12);
-        }
-
-        // DIBUJAR CAMINO ENCONTRADO
-        if (pathADibujar.size() > 1) {
-            g2.setColor(new Color(46, 204, 113));
-            g2.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            for (int i = 0; i < pathADibujar.size() - 1; i++) {
-                MapPoint actual = pathADibujar.get(i);
-                MapPoint siguiente = pathADibujar.get(i + 1);
-                g2.drawLine(actual.getX(), actual.getY(), siguiente.getX(), siguiente.getY());
+        if (modoVisualizacion == null || modoVisualizacion == TipoVisualizacion.EXPLORATION) {
+            for (MapPoint punto : visitadosADibujar) {
+                g2.setColor(new Color(230, 126, 34));
+                g2.fillOval(punto.getX() - 6, punto.getY() - 6, 12, 12);
             }
         }
 
-        for (MapPoint punto : pathADibujar) {
-            g2.setColor(new Color(46, 204, 113));
-            g2.fillOval(punto.getX() - 6, punto.getY() - 6, 12, 12);
-        }
+        if (modoVisualizacion == null || modoVisualizacion == TipoVisualizacion.FINAL_PATH) {
+            if (pathADibujar.size() > 1) {
+                g2.setColor(new Color(46, 204, 113));
+                g2.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                for (int i = 0; i < pathADibujar.size() - 1; i++) {
+                    MapPoint actual = pathADibujar.get(i);
+                    MapPoint siguiente = pathADibujar.get(i + 1);
+                    g2.drawLine(actual.getX(), actual.getY(), siguiente.getX(), siguiente.getY());
+                }
+            }
 
-        if (!pathADibujar.isEmpty()) {
-            MapPoint destino = pathADibujar.get(pathADibujar.size() - 1);
-            int px = destino.getX();
-            int py = destino.getY();
+            for (MapPoint punto : pathADibujar) {
+                g2.setColor(new Color(46, 204, 113));
+                g2.fillOval(punto.getX() - 6, punto.getY() - 6, 12, 12);
+            }
 
-            int[] xPoints = {px - 7, px + 7, px};
-            int[] yPoints = {py - 12, py - 12, py};
-            g2.setColor(new Color(231, 76, 60));
-            g2.fillPolygon(xPoints, yPoints, 3);
-            g2.fillOval(px - 9, py - 24, 18, 18);
-            g2.setColor(Color.WHITE);
-            g2.fillOval(px - 3, py - 18, 6, 6);
+            if (!pathADibujar.isEmpty()) {
+                MapPoint destino = pathADibujar.get(pathADibujar.size() - 1);
+                int px = destino.getX();
+                int py = destino.getY();
+
+                int[] xPoints = {px - 7, px + 7, px};
+                int[] yPoints = {py - 12, py - 12, py};
+                g2.setColor(new Color(231, 76, 60));
+                g2.fillPolygon(xPoints, yPoints, 3);
+                g2.fillOval(px - 9, py - 24, 18, 18);
+                g2.setColor(Color.WHITE);
+                g2.fillOval(px - 3, py - 18, 6, 6);
+            }
         }
 
         if (nodoSeleccionado != null) {
@@ -489,6 +602,10 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
             int cardH = 95;
             int cardX = 20;
             int cardY = getHeight() - cardH - 20;
+
+            if (scrollRegistro.isVisible()) {
+                cardY -= (scrollRegistro.getHeight() + 10);
+            }
 
             tarjetaInfoBounds.setBounds(cardX, cardY, cardW, cardH);
 
@@ -566,21 +683,16 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         int endX = (int) (x2 - ux * (RADIO_NODO + 2));
         int endY = (int) (y2 - uy * (RADIO_NODO + 2));
 
-        // Dibuja la línea base entre ambos nodos
         g2.drawLine(startX, startY, endX, endY);
 
-        // Verificación basada estrictamente en el set de control unIDireccional
         boolean uni1 = aristasUnidireccionales.contains(origen.getId() + "->" + destino.getId());
         boolean uni2 = aristasUnidireccionales.contains(destino.getId() + "->" + origen.getId());
 
         if (uni1) {
-            // Solo flecha hacia adelante (origen -> destino)
             dibujarPuntaFlecha(g2, endX, endY, dx, dy);
         } else if (uni2) {
-            // Solo flecha hacia atrás (destino -> origen)
             dibujarPuntaFlecha(g2, startX, startY, -dx, -dy);
         } else {
-            // Bidireccional por defecto
             dibujarPuntaFlecha(g2, endX, endY, dx, dy);
             dibujarPuntaFlecha(g2, startX, startY, -dx, -dy);
         }
@@ -605,9 +717,18 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
     public void onNodeVisited(MapPoint nodoPunto) {
         colaExploracion.add(nodoPunto);
         if (timerExploration == null) {
-            timerExploration = new Timer(250, e -> {
+            if (modoVisualizacion == TipoVisualizacion.EXPLORATION) {
+                scrollRegistro.setVisible(true);
+            } else {
+                scrollRegistro.setVisible(false);
+            }
+            
+            timerExploration = new Timer(200, e -> {
                 if (!colaExploracion.isEmpty()) {
                     visitadosADibujar.add(colaExploracion.poll());
+                    if (modoVisualizacion == TipoVisualizacion.EXPLORATION) {
+                        actualizarTextoRegistro();
+                    }
                     repaint();
                 } else {
                     timerExploration.stop();
@@ -619,16 +740,33 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
     }
 
     public void mostrarRuta(List<MapPoint> rutaExploracion) {
+        if (modoVisualizacion == TipoVisualizacion.FINAL_PATH) {
+            scrollRegistro.setVisible(true);
+            visitadosADibujar.clear(); 
+            iniciarAnimacionRutaVerde(rutaExploracion);
+        } else if (modoVisualizacion == TipoVisualizacion.EXPLORATION) {
+            scrollRegistro.setVisible(true);
+            pathADibujar.clear();
+            actualizarTextoRegistro();
+        } else {
+            scrollRegistro.setVisible(false);
+            iniciarAnimacionRutaVerde(rutaExploracion);
+        }
+    }
+
+    private void iniciarAnimacionRutaVerde(List<MapPoint> ruta) {
         pathADibujar.clear();
         if (timerPath != null && timerPath.isRunning()) {
             timerPath.stop();
         }
-        timerPath = new Timer(250, null);
         final int[] indice = {0};
-        timerPath.addActionListener(e -> {
-            if (indice[0] < rutaExploracion.size()) {
-                pathADibujar.add(rutaExploracion.get(indice[0]));
+        timerPath = new Timer(250, e -> {
+            if (indice[0] < ruta.size()) {
+                pathADibujar.add(ruta.get(indice[0]));
                 indice[0]++;
+                if (modoVisualizacion == TipoVisualizacion.FINAL_PATH) {
+                    actualizarTextoRegistro();
+                }
                 repaint();
             } else {
                 timerPath.stop();
@@ -636,6 +774,35 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
             }
         });
         timerPath.start();
+    }
+
+    private void actualizarTextoRegistro() {
+        StringBuilder sb = new StringBuilder();
+        
+        if (modoVisualizacion == TipoVisualizacion.EXPLORATION) {
+            sb.append("⚡ MODO EXPLORACIÓN — Nodos Evaluados:\n");
+            if (visitadosADibujar.isEmpty()) {
+                sb.append("Buscando nodos visitados...");
+            } else {
+                for (int i = 0; i < visitadosADibujar.size(); i++) {
+                    sb.append(visitadosADibujar.get(i).getId());
+                    if (i < visitadosADibujar.size() - 1) sb.append(" -> ");
+                }
+            }
+        } else if (modoVisualizacion == TipoVisualizacion.FINAL_PATH) {
+            sb.append("🎯 RUTA FINAL — Camino Óptimo Encontrado:\n");
+            if (pathADibujar.isEmpty()) {
+                sb.append("Calculando ruta óptima...");
+            } else {
+                for (int i = 0; i < pathADibujar.size(); i++) {
+                    sb.append(pathADibujar.get(i).getId());
+                    if (i < pathADibujar.size() - 1) sb.append(" -> ");
+                }
+            }
+        }
+        
+        textRegistroRuta.setText(sb.toString());
+        textRegistroRuta.setCaretPosition(textRegistroRuta.getDocument().getLength());
     }
 
     public boolean exploracionTerminada() {

@@ -35,7 +35,9 @@ public class MainFrame extends JFrame {
     private FileGraphRepository repositorio = new FileGraphRepository();
     private MapController controladorMapa;
 
-    private JButton btnDfs, btnBfs, btnAgregarNodo, btnEliminarNodo, btnAgregarConexion, btnEliminarConexion, btnTemperatura, btnSalir;
+    private JButton btnDfs, btnBfs, btnAgregarNodo, btnEliminarNodo, btnAgregarConexion, btnEliminarConexion;
+    private JButton btnExploracion, btnRutaFinal, btnTemperatura, btnSalir;
+    
     private JLabel lblEstado;
 
     public MainFrame(MapController controladorMapa) {
@@ -43,7 +45,7 @@ public class MainFrame extends JFrame {
         
         setTitle("Google Maps - Editor de Rutas");
         setSize(1020, 690);
-        setResizable(true); // Permitir redimensionar la ventana (Prueba 8)
+        setResizable(true);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -53,15 +55,13 @@ public class MainFrame extends JFrame {
         mapa.setPreferredSize(new Dimension(680, 520));
 
         mapa.setSearchCallback((tipo, inicio, fin) -> {
-            // Validar si el nodo de inicio es igual al nodo de destino (Prueba 12)
             if (inicio.equals(fin)) {
-                JOptionPane.showMessageDialog(this, "El nodo de inicio y el nodo destino no pueden ser el mismo.", "Aviso de ruta", JOptionPane.WARNING_MESSAGE);
+                mapa.mostrarNotificacionModo("Aviso de Ruta", "El nodo de inicio y el nodo destino no pueden ser el mismo.");
                 lblEstado.setText("Operación cancelada: El inicio y el destino son idénticos.");
                 return;
             }
 
             mapa.limpiarVisualizacion();
-            mapa.setModoVisualizacion(TipoVisualizacion.EXPLORATION);
             lblEstado.setText("Calculando ruta con " + tipo + "...");
 
             structures.graphs.PathFinder<MapPoint> finder = tipo.equals("DFS") ? new DFSPathFinder<>() : new BFSPathFinder<>();
@@ -79,7 +79,7 @@ public class MainFrame extends JFrame {
                 esperar.start();
             } else {
                 lblEstado.setText("No se encontró una ruta disponible (Nodo destino sin conexión).");
-                JOptionPane.showMessageDialog(this, "No se encontró una ruta entre los nodos seleccionados.", "Sin ruta", JOptionPane.WARNING_MESSAGE);
+                mapa.mostrarNotificacionModo("Sin Ruta", "No se encontró una ruta entre los nodos seleccionados.");
             }
         });
 
@@ -116,11 +116,17 @@ public class MainFrame extends JFrame {
         menuPanel.add(btnEliminarConexion);
         menuPanel.add(Box.createVerticalStrut(25));
 
-        // 3. EXTRAS
+        // 3. EXTRAS Y OPCIONES
         agregarCategoria(menuPanel, "OPCIONES");
+        btnExploracion = crearBotonMenu("Modo Exploración", COLOR_TEXTO);
+        btnRutaFinal = crearBotonMenu("Ruta Final", COLOR_TEXTO);
         btnTemperatura = crearBotonMenu("Alternar Temperaturas", COLOR_TEXTO);
         btnSalir = crearBotonMenu("Salir", COLOR_TEXTO);
 
+        menuPanel.add(btnExploracion);
+        menuPanel.add(Box.createVerticalStrut(8));
+        menuPanel.add(btnRutaFinal);
+        menuPanel.add(Box.createVerticalStrut(8));
         menuPanel.add(btnTemperatura);
         menuPanel.add(Box.createVerticalStrut(8));
         menuPanel.add(btnSalir);
@@ -184,6 +190,18 @@ public class MainFrame extends JFrame {
             lblEstado.setText("Modo Edición: Selecciona dos nodos para desconectarlos.");
         });
 
+        btnExploracion.addActionListener(e -> {
+            mapa.setModoVisualizacion(TipoVisualizacion.EXPLORATION);
+            lblEstado.setText("Modo Visualización: EXPLORATION. Selecciona una búsqueda.");
+            mapa.mostrarNotificacionModo("Modo Exploración Activado", "Se animará el proceso paso a paso de los nodos visitados.");
+        });
+
+        btnRutaFinal.addActionListener(e -> {
+            mapa.setModoVisualizacion(TipoVisualizacion.FINAL_PATH);
+            lblEstado.setText("Modo Visualización: FINAL PATH. Selecciona una búsqueda.");
+            mapa.mostrarNotificacionModo("Modo Ruta Final Activado", "Se trazará el camino directamente sin animación previa.");
+        });
+
         btnTemperatura.addActionListener(e -> {
             mapa.toggleTemperaturas();
             lblEstado.setText("Visualización de temperaturas actualizada.");
@@ -202,9 +220,9 @@ public class MainFrame extends JFrame {
             try {
                 repositorio.guardarArchivo(grafoResultado, "src/resources/mapa.json");
                 lblEstado.setText("Mapa guardado con éxito.");
-                JOptionPane.showMessageDialog(this, "Configuración guardada correctamente.", "Guardado", JOptionPane.INFORMATION_MESSAGE);
+                mapa.mostrarNotificacionModo("Guardado Exitoso", "Configuración guardada correctamente.");
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al guardar el archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                mapa.mostrarNotificacionModo("Error de Guardado", "Error al guardar el archivo: " + ex.getMessage());
             }
         });
 
@@ -216,15 +234,13 @@ public class MainFrame extends JFrame {
                     mapa.setGrafo(grafoResultado);
                     mapa.repaint();
                     lblEstado.setText("Configuración válida cargada con éxito.");
-                    JOptionPane.showMessageDialog(this, "Mapa cargado correctamente.", "Carga exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    mapa.mostrarNotificacionModo("Carga Exitosa", "Mapa cargado correctamente.");
                 } else {
-                    // Control de carga con errores / estructura corrupta (Prueba 18)
-                    JOptionPane.showMessageDialog(this, "El archivo contiene errores, formato inválido o está vacío.", "Error de Carga", JOptionPane.ERROR_MESSAGE);
+                    mapa.mostrarNotificacionModo("Error de Carga", "El archivo contiene errores, formato inválido o está vacío.");
                     lblEstado.setText("Error: Configuración inválida.");
                 }
             } catch (Exception ex) {
-                // Captura excepciones de sintaxis JSON o archivos inexistentes (Prueba 14 y 18)
-                JOptionPane.showMessageDialog(this, "Error crítico al procesar la configuración: " + ex.getMessage(), "Error de Carga", JOptionPane.ERROR_MESSAGE);
+                mapa.mostrarNotificacionModo("Error Crítico", "Error al procesar la configuración: " + ex.getMessage());
                 lblEstado.setText("Error al cargar la configuración.");
             }
         });
