@@ -69,7 +69,7 @@ Al plasmar un mapa a través de un grafo, se puede modelar las conexiones existe
 
 *Ejemplo de grafo*
 
-![alt text](image.png)
+![alt text](<WhatsApp Image 2026-07-28 at 10.58.41 PM.jpeg>)
 
 *Nota.* Adaptado de *"Taller - Grafos"*, por Sistema Uniremington, s.f., Sistemas Uniremington https://sistemasuniremingtonb.webnode.com.co/taller-grafos/
 
@@ -93,7 +93,7 @@ Posee una característica primordial, la cual se basa en la idea de no encontrar
 
 *Recorrido BFS*
 
-![alt text](image-1.png)
+![alt text](<WhatsApp Image 2026-07-28 at 11.01.40 PM.jpeg>)
 
 *Nota.* Adaptado de *"BFS Algorithm : Breadth First Search Algorithm Tutorial.* Simplilearn. https://www.simplilearn.com/tutorials/data-structure-tutorial/bfs-algorithm
 
