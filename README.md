@@ -5,7 +5,7 @@
 
 ### **Tema**: Proyecto Final
 
-### **Título**: Implementación y Visualización de rutas en un mapa de calles mediante **BFS** y **DFS**  🗺️ 🖥️
+### **Título**: Implementación y Visualización de rutas en un mapa de calles mediante **BFS** y **DFS** 
 
 ### **Fecha**: Cuenca, 28 de julio 2026
 
@@ -26,7 +26,7 @@
   - 3.2.2 Depth-First-Search (**DFS**)
 
   - 3.2.3 Complejidad computacional
-#### 4. Tecnologías utilizadas 🛠️
+#### 4. Tecnologías utilizadas 
 #### 5. Diagrama UML
 #### 6. Arquitectura y estructura de carpetas
  - 6.1 Arquitectura por capas
@@ -46,7 +46,7 @@
 
 ##
 ## 1. Objetivos
-General: Desarrollar un sistema en Java que permita modelar un mapa de referencia real basado en una zona geográfica específica obtenido de la aplicación **Google Maps** 📍, representándolo como una estructura de datos no lineal denominada como *"Grafo"*, compuesta por nodos y aristas.
+General: Desarrollar un sistema en Java que permita modelar un mapa de referencia real basado en una zona geográfica específica obtenido de la aplicación **Google Maps**, representándolo como una estructura de datos no lineal denominada como *"Grafo"*, compuesta por nodos y aristas.
 
 Específico 1: Aplicar las arquitecturas de software aprendidas, basadas en la separación de responsabilidades, usando patrones como Modelo-Vista-Controlador (**MVC**) para estructurar los componentes
 

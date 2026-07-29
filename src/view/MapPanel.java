@@ -780,7 +780,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
         StringBuilder sb = new StringBuilder();
         
         if (modoVisualizacion == TipoVisualizacion.EXPLORATION) {
-            sb.append("⚡ MODO EXPLORACIÓN — Nodos Evaluados:\n");
+            sb.append("MODO EXPLORACIÓN — Nodos Evaluados:\n");
             if (visitadosADibujar.isEmpty()) {
                 sb.append("Buscando nodos visitados...");
             } else {
@@ -790,7 +790,7 @@ public class MapPanel extends JPanel implements PathListener<MapPoint> {
                 }
             }
         } else if (modoVisualizacion == TipoVisualizacion.FINAL_PATH) {
-            sb.append("🎯 RUTA FINAL — Camino Óptimo Encontrado:\n");
+            sb.append("RUTA FINAL — Camino Óptimo Encontrado:\n");
             if (pathADibujar.isEmpty()) {
                 sb.append("Calculando ruta óptima...");
             } else {
