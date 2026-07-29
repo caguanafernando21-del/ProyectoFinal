@@ -106,7 +106,7 @@ Se lo puede marcar como una serie de pasos:
 2) Marcarlo como nodo visitado
 3) Seleccionar un nodo que no ha sido visitado
 4) Repetir los pasos anteriores hasta encontrar un nodo sin vecinos 
-5) Finalmente retroceder y continuar con otras ramas
+5) Finalmente retroceder y continuar con otras ramas.
 
 **Figura 3**
 
